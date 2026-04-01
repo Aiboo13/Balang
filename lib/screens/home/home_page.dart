@@ -1,14 +1,35 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
+=======
+import 'notification_page.dart'; 
+import 'detail_page.dart'; // 1. PASTIKAN SUDAH DIIMPORT
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  bool isMenuOpen = false;
+
+  @override
+>>>>>>> 673ef8a90647d9be8c4e8eca092e2d7f12fee5e2
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
+<<<<<<< HEAD
+=======
+          // 1. KONTEN UTAMA
+>>>>>>> 673ef8a90647d9be8c4e8eca092e2d7f12fee5e2
           Column(
             children: [
               // Header Biru
@@ -36,7 +57,11 @@ class HomePage extends StatelessWidget {
                               const CircleAvatar(
                                 radius: 25,
                                 backgroundColor: Colors.white,
+<<<<<<< HEAD
                                 child: Text('👩', style: TextStyle(fontSize: 24)), // Placeholder avatar
+=======
+                                child: Text('👩', style: TextStyle(fontSize: 24)),
+>>>>>>> 673ef8a90647d9be8c4e8eca092e2d7f12fee5e2
                               ),
                               const SizedBox(width: 12),
                               const Text(
@@ -49,7 +74,19 @@ class HomePage extends StatelessWidget {
                               ),
                             ],
                           ),
+<<<<<<< HEAD
                           const Icon(Icons.notifications, color: Colors.white, size: 30),
+=======
+                          IconButton(
+                            icon: const Icon(Icons.notifications, color: Colors.white, size: 30),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const NotificationPage()),
+                              );
+                            },
+                          ),
+>>>>>>> 673ef8a90647d9be8c4e8eca092e2d7f12fee5e2
                         ],
                       ),
                       const SizedBox(height: 40),
@@ -67,21 +104,37 @@ class HomePage extends StatelessWidget {
                 ),
               ),
 
+<<<<<<< HEAD
               // List Item
+=======
+              // Daftar Item Barang
+>>>>>>> 673ef8a90647d9be8c4e8eca092e2d7f12fee5e2
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
                   children: [
                     _buildItemCard(
+<<<<<<< HEAD
+=======
+                      context, // Tambahkan context
+>>>>>>> 673ef8a90647d9be8c4e8eca092e2d7f12fee5e2
                       title: 'SEPATU HIKING',
                       status: 'Hilang',
                       statusColor: Colors.redAccent,
                       description: 'berwarna abu abu dan hitam ....',
                       date: '9 Maret 2026 10.00 WIB',
+<<<<<<< HEAD
                       imageUrl: 'https://via.placeholder.com/150', // Ganti dengan image path Anda
                     ),
                     const SizedBox(height: 20),
                     _buildItemCard(
+=======
+                      imageUrl: 'https://via.placeholder.com/150', 
+                    ),
+                    const SizedBox(height: 20),
+                    _buildItemCard(
+                      context, // Tambahkan context
+>>>>>>> 673ef8a90647d9be8c4e8eca092e2d7f12fee5e2
                       title: 'TAS HITAM',
                       status: 'Ditemukan',
                       statusColor: Colors.greenAccent,
@@ -89,6 +142,7 @@ class HomePage extends StatelessWidget {
                       date: '9 Maret 2026 10.00 WIB',
                       imageUrl: 'https://via.placeholder.com/150',
                     ),
+<<<<<<< HEAD
                     const SizedBox(height: 20),
                     _buildItemCard(
                       title: 'Sepatu',
@@ -98,12 +152,15 @@ class HomePage extends StatelessWidget {
                       date: '9 Maret 2026 10.00 WIB',
                       imageUrl: 'https://via.placeholder.com/150',
                     ),
+=======
+>>>>>>> 673ef8a90647d9be8c4e8eca092e2d7f12fee5e2
                   ],
                 ),
               ),
             ],
           ),
 
+<<<<<<< HEAD
           // Floating Action Button (+)
           Positioned(
             bottom: 30,
@@ -118,12 +175,53 @@ class HomePage extends StatelessWidget {
       ),
 
       // Bottom Navigation Bar
+=======
+          // 2. OVERLAY BLUR/GELAP
+          if (isMenuOpen)
+            GestureDetector(
+              onTap: () => setState(() => isMenuOpen = false),
+              child: Container(
+                color: Colors.black.withOpacity(0.3), // Ubah ke agak gelap agar teks putih terbaca
+              ),
+            ),
+
+          // 3. MENU MELAYANG
+          if (isMenuOpen)
+            Positioned(
+              bottom: 110,
+              right: 20,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _buildFabMenu(Icons.search, "Menemukan"),
+                  const SizedBox(height: 15),
+                  _buildFabMenu(Icons.help_outline, "Kehilangan"),
+                ],
+              ),
+            ),
+        ],
+      ),
+
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF0900FF),
+        onPressed: () => setState(() => isMenuOpen = !isMenuOpen),
+        child: Icon(
+          isMenuOpen ? Icons.close : Icons.add, // Ganti ke close agar lebih umum
+          color: Colors.white, 
+          size: 35
+        ),
+      ),
+
+>>>>>>> 673ef8a90647d9be8c4e8eca092e2d7f12fee5e2
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 1,
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.grey,
+<<<<<<< HEAD
         showSelectedLabels: true,
         showUnselectedLabels: true,
+=======
+>>>>>>> 673ef8a90647d9be8c4e8eca092e2d7f12fee5e2
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
@@ -133,9 +231,36 @@ class HomePage extends StatelessWidget {
     );
   }
 
+<<<<<<< HEAD
   //text
 
   Widget _buildItemCard({
+=======
+  Widget _buildFabMenu(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A9E),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 20),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget kartu barang yang sudah terkoneksi
+  Widget _buildItemCard(
+    BuildContext context, { // Tambahkan BuildContext di sini
+>>>>>>> 673ef8a90647d9be8c4e8eca092e2d7f12fee5e2
     required String title,
     required String status,
     required Color statusColor,
@@ -209,6 +334,7 @@ class HomePage extends StatelessWidget {
                     const SizedBox(height: 8),
                     Align(
                       alignment: Alignment.centerRight,
+<<<<<<< HEAD
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
@@ -218,6 +344,31 @@ class HomePage extends StatelessWidget {
                         child: const Text(
                           'Selengkapnya →',
                           style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+=======
+                      child: InkWell( // 2. GUNAKAN INKWELL/GESTUREDETECTOR UNTUK NAVIGASI
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DetailPage(
+                                title: title,
+                                imageUrl: imageUrl,
+                                status: status,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2B2BFF),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'Selengkapnya →',
+                            style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+>>>>>>> 673ef8a90647d9be8c4e8eca092e2d7f12fee5e2
                         ),
                       ),
                     )

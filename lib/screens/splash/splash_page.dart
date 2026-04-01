@@ -75,12 +75,12 @@ class _SplashPageState extends State<SplashPage> {
                 // Ganti dengan logo kamu
                 Image.asset(
                   'assets/logo.png', // <-- pastikan ada
-                  width: 180,
+                  width: 120,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 20),
 
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 40),
+                  padding: EdgeInsets.symmetric(horizontal: 30),
                   child: Text(
                     "Find what you've lost, return what you found.",
                     textAlign: TextAlign.center,
