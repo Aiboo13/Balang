@@ -14,8 +14,8 @@ class _SplashPageState extends State<SplashPage> {
   void initState() {
     super.initState();
 
-    // Delay 3 detik lalu pindah ke Login
-    Timer(const Duration(seconds: 3), () {
+    // Delay 5 detik lalu pindah ke Login
+    Timer(const Duration(seconds: 5), () {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const LoginPage()),
