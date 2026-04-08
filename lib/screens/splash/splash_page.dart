@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../auth/login_page.dart'; // Pastikan path ini benar sesuai folder kamu
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../auth/login_page.dart'; 
+import '../../main.dart'; 
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -13,17 +16,48 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
+    _checkStatus();
+  }
 
-    // Timer tetap 5 detik sesuai kode awalmu
-    Timer(const Duration(seconds: 5), () {
-      // PENTING: Gunakan pushReplacement agar user tidak bisa kembali ke splash
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginPage()),
-        );
+  void _checkStatus() async {
+    // Tunggu animasi splash misalnya 3 detik
+    await Future.delayed(const Duration(seconds: 3));
+    
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      int? lastActive = prefs.getInt('last_active_time');
+      int now = DateTime.now().millisecondsSinceEpoch;
+      
+      const int timeout = 10 * 60 * 1000; // 10 menit = waktu tunggu
+
+      if (lastActive != null && (now - lastActive) > timeout) {
+        // Sesi habis, perlu login ulang karena tidak aktif melebihi batas waktu
+        await FirebaseAuth.instance.signOut();
+        await prefs.remove('last_active_time');
+        _navigateToLogin();
+      } else {
+        // Sesi masih aman dan belum kedaluwarsa, update timer lalu pergi ke layar utama (tanpa login ulang)
+        await prefs.setInt('last_active_time', now);
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainScreen()),
+          );
+        }
       }
-    });
+    } else {
+      _navigateToLogin();
+    }
+  }
+
+  void _navigateToLogin() {
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+    }
   }
 
   @override

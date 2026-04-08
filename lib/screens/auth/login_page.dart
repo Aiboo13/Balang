@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 // UBAH IMPORT INI: Arahkan ke file main.dart (tempat MainScreen berada)
 // Jika MainScreen ada di main.dart, gunakan path relatif yang sesuai
-import '../../main.dart'; 
+import '../../main.dart';
 import 'register_page.dart';
-
 
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -18,17 +17,22 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  String? _errorMessage;
 
   void _login() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (!email.endsWith('ac.id')) {
-      _showMessage('Email harus berakhiran ac.id');
+    setState(() {
+      _errorMessage = null;
+    });
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = 'Email dan password wajib diisi');
       return;
     }
-    if (email.isEmpty || password.isEmpty) {
-      _showMessage('Email dan password wajib diisi');
+    if (!email.endsWith('@ac.id')) {
+      setState(() => _errorMessage = 'Email harus berakhiran ac.id');
       return;
     }
     setState(() => _isLoading = true);
@@ -44,16 +48,25 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } on FirebaseAuthException catch (e) {
-      _showMessage(e.message ?? 'Gagal login');
+      String message = 'Terjadi kesalahan saat login';
+      if (e.code == 'user-not-found') {
+        message = 'Email tidak terdaftar';
+      } else if (e.code == 'wrong-password') {
+        message = 'Password salah';
+      } else if (e.code == 'invalid-email') {
+        message = 'Format email tidak valid';
+      } else if (e.code == 'invalid-credential') {
+        message = 'Email atau password salah';
+      } else if (e.code == 'too-many-requests') {
+        message = 'Terlalu banyak percobaan, coba lagi nanti';
+      } else if (e.message != null) {
+        message = e.message!;
+      }
+
+      setState(() => _errorMessage = message);
     } finally {
       setState(() => _isLoading = false);
     }
-  }
-
-  void _showMessage(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
-    );
   }
 
   @override
@@ -131,7 +144,21 @@ class _LoginPageState extends State<LoginPage> {
                     controller: _passwordController,
                   ),
 
-                  const SizedBox(height: 40),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                  ] else ...[
+                    const SizedBox(height: 40),
+                  ],
 
                   // PERBAIKAN TOMBOL LOGIN
                   SizedBox(
@@ -170,14 +197,13 @@ class _LoginPageState extends State<LoginPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) => const RegisterPage()),
+                              builder: (_) => const RegisterPage(),
+                            ),
                           );
                         },
                         child: const Text(
                           'Register now',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
@@ -214,7 +240,10 @@ class _LoginPageState extends State<LoginPage> {
             decoration: InputDecoration(
               hintText: hintText,
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
             ),
           ),
         ),

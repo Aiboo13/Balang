@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../home/notification_page.dart';
 import '../home/detail_page.dart';
 
@@ -75,39 +77,41 @@ class HomePage extends StatelessWidget {
 
           // --- DAFTAR BARANG ---
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-              children: [
-                _buildItemCard(
-                  context,
-                  title: 'SEPATU HIKING',
-                  status: 'Hilang',
-                  statusColor: Colors.redAccent,
-                  description: 'berwarna abu abu dan hitam, digunakan untuk mendaki atau nongkrong di trotoar',
-                  date: '9 Maret 2026 10.00 WIB',
-                  imageUrl: 'https://via.placeholder.com/150',
-                ),
-                const SizedBox(height: 16),
-                _buildItemCard(
-                  context,
-                  title: 'TAS HITAM',
-                  status: 'Ditemukan',
-                  statusColor: Colors.greenAccent,
-                  description: 'Berwarna hitam merk dior, 20 juta cash, ga nyicil .....',
-                  date: '9 Maret 2026 10.00 WIB',
-                  imageUrl: 'https://via.placeholder.com/150',
-                ),
-                const SizedBox(height: 16),
-                _buildItemCard(
-                  context,
-                  title: 'Sepatu',
-                  status: 'Hilang',
-                  statusColor: Colors.redAccent,
-                  description: 'berwarna abu abu dan hitam ....',
-                  date: '9 Maret 2026 10.00 WIB',
-                  imageUrl: 'https://via.placeholder.com/150',
-                ),
-              ],
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('reports').orderBy('createdAt', descending: true).snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text("Belum ada laporan."));
+                }
+                
+                final docs = snapshot.data!.docs;
+                
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final data = docs[index].data() as Map<String, dynamic>;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildItemCard(
+                        context,
+                        title: data['title'] ?? 'Tanpa Nama',
+                        status: data['status'] ?? 'Hilang',
+                        statusColor: (data['status'] == 'Ditemukan' || data['category'] == 'Menemukan') 
+                            ? Colors.greenAccent 
+                            : Colors.redAccent,
+                        description: data['description'] ?? '',
+                        date: data['date'] ?? '',
+                        imageUrl: data['imageUrl'] ?? '',
+                        reportUserId: data['userId'] ?? '',
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],
@@ -123,6 +127,7 @@ class HomePage extends StatelessWidget {
     required String description,
     required String date,
     required String imageUrl,
+    required String reportUserId,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -175,18 +180,38 @@ class HomePage extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  imageUrl,
-                  width: 110,
-                  height: 85,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    width: 110,
-                    height: 85,
-                    color: Colors.grey[200],
-                    child: const Icon(Icons.image, color: Colors.grey),
-                  ),
-                ),
+                child: imageUrl.toString().startsWith('http')
+                    ? Image.network(
+                        imageUrl,
+                        width: 110,
+                        height: 85,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 110,
+                          height: 85,
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.image, color: Colors.grey),
+                        ),
+                      )
+                    : (imageUrl.isNotEmpty 
+                        ? Image.memory(
+                            base64Decode(imageUrl),
+                            width: 110,
+                            height: 85,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              width: 110,
+                              height: 85,
+                              color: Colors.grey[200],
+                              child: const Icon(Icons.image, color: Colors.grey),
+                            ),
+                          )
+                        : Container(
+                            width: 110,
+                            height: 85,
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.image, color: Colors.grey),
+                          )),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -221,6 +246,7 @@ class HomePage extends StatelessWidget {
                                 statusColor: statusColor,
                                 description: description,
                                 date: date,
+                                reportUserId: reportUserId,
                               ),
                             ),
                           );

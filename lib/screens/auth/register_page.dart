@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart'; // Import ke halaman login
 
-
 import 'package:firebase_auth/firebase_auth.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -17,6 +16,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
   bool _isLoading = false;
+  String? _errorMessage;
 
   void _register() async {
     final name = _nameController.text.trim();
@@ -24,16 +24,20 @@ class _RegisterPageState extends State<RegisterPage> {
     final password = _passwordController.text;
     final confirm = _confirmController.text;
 
-    if (!email.endsWith('ac.id')) {
-      _showMessage('Email harus berakhiran ac.id');
+    setState(() {
+      _errorMessage = null;
+    });
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty) {
+      setState(() => _errorMessage = 'Semua field wajib diisi');
       return;
     }
-    if (name.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty) {
-      _showMessage('Semua field wajib diisi');
+    if (!email.endsWith('@ac.id')) {
+      setState(() => _errorMessage = 'Email harus berakhiran ac.id');
       return;
     }
     if (password != confirm) {
-      _showMessage('Password tidak sama');
+      setState(() => _errorMessage = 'Password tidak sama');
       return;
     }
     setState(() => _isLoading = true);
@@ -45,19 +49,26 @@ class _RegisterPageState extends State<RegisterPage> {
       // Sukses, kembali ke login
       if (mounted) {
         Navigator.pop(context);
-        _showMessage('Registrasi berhasil, silakan login');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registrasi berhasil, silakan login')),
+        );
       }
     } on FirebaseAuthException catch (e) {
-      _showMessage(e.message ?? 'Gagal register');
+      String message = 'Terjadi kesalahan saat register';
+      if (e.code == 'weak-password') {
+        message = 'Password terlalu panjang atau lemah';
+      } else if (e.code == 'email-already-in-use') {
+        message = 'Email sudah terdaftar';
+      } else if (e.code == 'invalid-email') {
+        message = 'Format email tidak valid';
+      } else if (e.message != null) {
+        message = e.message!;
+      }
+
+      setState(() => _errorMessage = message);
     } finally {
       setState(() => _isLoading = false);
     }
-  }
-
-  void _showMessage(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
-    );
   }
 
   @override
@@ -158,7 +169,21 @@ class _RegisterPageState extends State<RegisterPage> {
                           controller: _confirmController,
                         ),
 
-                        const SizedBox(height: 40),
+                        if (_errorMessage != null) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                        ] else ...[
+                          const SizedBox(height: 40),
+                        ],
 
                         // --- TOMBOL REGISTER ---
                         SizedBox(
@@ -175,7 +200,9 @@ class _RegisterPageState extends State<RegisterPage> {
                             ),
                             onPressed: _isLoading ? null : _register,
                             child: _isLoading
-                                ? const CircularProgressIndicator(color: Colors.white)
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
                                 : const Text(
                                     'REGISTER',
                                     style: TextStyle(
@@ -195,7 +222,10 @@ class _RegisterPageState extends State<RegisterPage> {
                           children: [
                             const Text(
                               'Already have an account? ',
-                              style: TextStyle(color: Colors.black54, fontSize: 14),
+                              style: TextStyle(
+                                color: Colors.black54,
+                                fontSize: 14,
+                              ),
                             ),
                             GestureDetector(
                               onTap: () {
@@ -237,10 +267,7 @@ class _RegisterPageState extends State<RegisterPage> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black54,
-          ),
+          style: const TextStyle(fontSize: 14, color: Colors.black54),
         ),
         const SizedBox(height: 8),
         Container(
@@ -253,10 +280,7 @@ class _RegisterPageState extends State<RegisterPage> {
             obscureText: isPassword,
             decoration: InputDecoration(
               hintText: hintText,
-              hintStyle: const TextStyle(
-                color: Colors.black87,
-                fontSize: 15,
-              ),
+              hintStyle: const TextStyle(color: Colors.black87, fontSize: 15),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,

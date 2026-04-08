@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class DetailPage extends StatefulWidget {
   final String title;
@@ -7,6 +9,7 @@ class DetailPage extends StatefulWidget {
   final Color statusColor;
   final String description;
   final String date;
+  final String reportUserId;
 
   const DetailPage({
     super.key,
@@ -16,6 +19,7 @@ class DetailPage extends StatefulWidget {
     required this.statusColor,
     required this.description,
     required this.date,
+    required this.reportUserId,
   });
 
   @override
@@ -173,21 +177,47 @@ class _DetailPageState extends State<DetailPage> {
             // Gambar Barang
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Image.network(
-                widget.imageUrl,
-                width: double.infinity,
-                height: 250,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  width: double.infinity,
-                  height: 250,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Icon(Icons.image, size: 60, color: Colors.grey),
-                ),
-              ),
+              child: widget.imageUrl.toString().startsWith('http')
+                  ? Image.network(
+                      widget.imageUrl,
+                      width: double.infinity,
+                      height: 250,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: double.infinity,
+                        height: 250,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(Icons.image, size: 60, color: Colors.grey),
+                      ),
+                    )
+                  : (widget.imageUrl.isNotEmpty
+                      ? Image.memory(
+                          base64Decode(widget.imageUrl),
+                          width: double.infinity,
+                          height: 250,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            width: double.infinity,
+                            height: 250,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Icon(Icons.image, size: 60, color: Colors.grey),
+                          ),
+                        )
+                      : Container(
+                          width: double.infinity,
+                          height: 250,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(Icons.image, size: 60, color: Colors.grey),
+                        )),
             ),
             const SizedBox(height: 20),
 
@@ -273,7 +303,26 @@ class _DetailPageState extends State<DetailPage> {
             const SizedBox(height: 40),
 
             // Tombol bawah
-            if (!_isClaimed)
+            if (FirebaseAuth.instance.currentUser?.uid == widget.reportUserId)
+              // Jika ini laporan miliknya sendiri
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Ini adalah laporan Anda',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              )
+            else if (!_isClaimed)
               // Sebelum klaim: tombol "Klaim Barang ini"
               SizedBox(
                 width: double.infinity,

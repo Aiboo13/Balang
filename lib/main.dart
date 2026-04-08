@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 
 // --- IMPORT SEMUA SCREEN ---
@@ -10,8 +12,8 @@ import 'screens/auth/register_page.dart';
 import 'screens/home/home_page.dart';
 import 'screens/history/history_page.dart';
 import 'screens/profile/profile_page.dart';
-// Pastikan kamu sudah membuat file notification_page.dart
 import 'screens/home/notification_page.dart'; 
+import 'screens/home/add_report_page.dart';
 
 
 void main() async {
@@ -48,8 +50,57 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _currentIndex = 1; // Default ke halaman Beranda
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _updateActivityTime();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> _updateActivityTime() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('last_active_time', DateTime.now().millisecondsSinceEpoch);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.paused) {
+      // Aplikasi ditutup sementara / diminimize
+      await _updateActivityTime();
+    } else if (state == AppLifecycleState.resumed) {
+      // Aplikasi dibuka kembali
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      int? lastActive = prefs.getInt('last_active_time');
+      int now = DateTime.now().millisecondsSinceEpoch;
+      
+      const int timeout = 10 * 60 * 1000; // 10 menit
+      
+      if (lastActive != null && (now - lastActive) > timeout) {
+        // Waktu habis, logout dan paksa ke login
+        await FirebaseAuth.instance.signOut();
+        await prefs.remove('last_active_time');
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginPage()),
+            (route) => false,
+          );
+        }
+      } else {
+        // Masih aman, update waktu aktif
+        await _updateActivityTime();
+      }
+    }
+  }
 
   final List<Widget> _pages = [
     const HistoryPage(),
@@ -57,54 +108,11 @@ class _MainScreenState extends State<MainScreen> {
     const ProfilePage(),
   ];
 
-  // FUNGSI MENU TAMBAH (Sesuai Gambar "Menemukan" & "Kehilangan")
+  // FUNGSI MENU TAMBAH
   void _showActionMenu() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              "Pilih Kategori",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Color(0xFF0900FF),
-                child: Icon(Icons.search, color: Colors.white),
-              ),
-              title: const Text('Menemukan Barang'),
-              onTap: () {
-                Navigator.pop(context);
-                // Arahkan ke halaman form barang ditemukan di sini
-              },
-            ),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Color(0xFF0900FF),
-                child: Icon(Icons.help_outline, color: Colors.white),
-              ),
-              title: const Text('Kehilangan Barang'),
-              onTap: () {
-                Navigator.pop(context);
-                // Arahkan ke halaman form barang hilang di sini
-              },
-            ),
-            const SizedBox(height: 10),
-          ],
-        ),
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AddReportPage()),
     );
   }
 
