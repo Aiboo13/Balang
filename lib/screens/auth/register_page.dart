@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'login_page.dart'; // Import ke halaman login
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -45,6 +46,15 @@ class _RegisterPageState extends State<RegisterPage> {
       final credential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
       await credential.user?.updateDisplayName(name);
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(credential.user!.uid)
+          .set({
+            'name': name,
+            'email': email,
+            'whatsApp': '-',
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
       await FirebaseAuth.instance.signOut();
       // Sukses, kembali ke login
       if (mounted) {

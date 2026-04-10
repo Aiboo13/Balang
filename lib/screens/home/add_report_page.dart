@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AddReportPage extends StatefulWidget {
   final String? docId; // ID dokumen jika mode edit
@@ -23,18 +24,46 @@ class _AddReportPageState extends State<AddReportPage> {
   late TextEditingController _descController;
   late TextEditingController _locationController;
   late TextEditingController _dateController;
+  late TextEditingController _timeController;
 
   String _selectedCategory = 'Kehilangan';
   String? _base64Image;
   bool _isLoading = false;
 
+  DateTime? _parseDisplayDate(String value) {
+    final parts = value.split('/');
+    if (parts.length != 3) {
+      return null;
+    }
+
+    final day = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final year = int.tryParse(parts[2]);
+    if (day == null || month == null || year == null) {
+      return null;
+    }
+
+    final parsed = DateTime(year, month, day);
+    if (parsed.year != year || parsed.month != month || parsed.day != day) {
+      return null;
+    }
+
+    return parsed;
+  }
+
   Future<void> _pickDate() async {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final parsedDate = _parseDisplayDate(_dateController.text.trim());
+    final initialDate = parsedDate != null && parsedDate.isAfter(today)
+        ? today
+        : (parsedDate ?? today);
+
     final selected = await showDatePicker(
       context: context,
-      initialDate: now,
+      initialDate: initialDate,
       firstDate: DateTime(now.year - 10),
-      lastDate: DateTime(now.year + 10),
+      lastDate: today,
       helpText: 'Pilih Tanggal Kejadian',
     );
 
@@ -43,6 +72,21 @@ class _AddReportPageState extends State<AddReportPage> {
       final month = selected.month.toString().padLeft(2, '0');
       final year = selected.year.toString();
       _dateController.text = '$day/$month/$year';
+    }
+  }
+
+  Future<void> _pickTime() async {
+    final now = TimeOfDay.now();
+    final selected = await showTimePicker(
+      context: context,
+      initialTime: now,
+      helpText: 'Pilih Waktu Kejadian',
+    );
+
+    if (selected != null) {
+      final hour = selected.hour.toString().padLeft(2, '0');
+      final minute = selected.minute.toString().padLeft(2, '0');
+      _timeController.text = '$hour:$minute WIB';
     }
   }
 
@@ -62,6 +106,9 @@ class _AddReportPageState extends State<AddReportPage> {
     _dateController = TextEditingController(
       text: widget.existingData?['date'] ?? '',
     );
+    _timeController = TextEditingController(
+      text: widget.existingData?['time'] ?? '',
+    );
     _selectedCategory = widget.existingData?['category'] ?? 'Kehilangan';
     _base64Image = widget.existingData?['imageUrl'];
   }
@@ -72,6 +119,7 @@ class _AddReportPageState extends State<AddReportPage> {
     _descController.dispose();
     _locationController.dispose();
     _dateController.dispose();
+    _timeController.dispose();
     super.dispose();
   }
 
@@ -99,12 +147,33 @@ class _AddReportPageState extends State<AddReportPage> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw 'User tidak terautentikasi';
 
+      final prefs = await SharedPreferences.getInstance();
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final userData = userDoc.data();
+
+      final reporterName =
+          ((userData?['name'] as String?) ?? '').trim().isNotEmpty
+          ? (userData?['name'] as String).trim()
+          : (user.displayName ?? '').trim().isNotEmpty
+          ? user.displayName!.trim()
+          : (user.email?.split('@').first ?? 'User');
+      final reporterWhatsApp =
+          ((userData?['whatsApp'] as String?) ?? '').trim().isNotEmpty
+          ? (userData?['whatsApp'] as String).trim()
+          : (prefs.getString('profile_whatsapp_${user.uid}') ?? '-');
+
       final reportData = {
         'userId': user.uid, // Sangat penting untuk filter di HistoryPage
         'title': _titleController.text,
         'description': _descController.text,
         'location': _locationController.text,
         'date': _dateController.text,
+        'time': _timeController.text,
+        'reporterName': reporterName,
+        'reporterWhatsApp': reporterWhatsApp,
         'category': _selectedCategory,
         'imageUrl': _base64Image,
         'reportStatus':
@@ -245,6 +314,17 @@ class _AddReportPageState extends State<AddReportPage> {
                       decoration: const InputDecoration(
                         labelText: 'Tanggal Kejadian',
                         prefixIcon: Icon(Icons.calendar_today),
+                      ),
+                      validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
+                    ),
+                    const SizedBox(height: 15),
+                    TextFormField(
+                      controller: _timeController,
+                      readOnly: true,
+                      onTap: _pickTime,
+                      decoration: const InputDecoration(
+                        labelText: 'Waktu Kejadian',
+                        prefixIcon: Icon(Icons.access_time),
                       ),
                       validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
                     ),

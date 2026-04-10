@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../auth/login_page.dart';
@@ -103,6 +104,13 @@ class _ProfilePageState extends State<ProfilePage> {
         'profile_whatsapp_${user.uid}',
         updatedWhatsApp.isEmpty ? '-' : updatedWhatsApp,
       );
+
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'name': updatedName,
+        'email': user.email ?? '-',
+        'whatsApp': updatedWhatsApp.isEmpty ? '-' : updatedWhatsApp,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
       if (!mounted) {
         return;

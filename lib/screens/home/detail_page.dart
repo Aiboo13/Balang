@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class DetailPage extends StatefulWidget {
@@ -9,7 +10,11 @@ class DetailPage extends StatefulWidget {
   final Color statusColor;
   final String description;
   final String date;
+  final String time;
+  final String location;
   final String reportUserId;
+  final String reporterName;
+  final String reporterWhatsApp;
 
   const DetailPage({
     super.key,
@@ -19,7 +24,11 @@ class DetailPage extends StatefulWidget {
     required this.statusColor,
     required this.description,
     required this.date,
+    required this.time,
+    required this.location,
     required this.reportUserId,
+    required this.reporterName,
+    required this.reporterWhatsApp,
   });
 
   @override
@@ -29,6 +38,70 @@ class DetailPage extends StatefulWidget {
 class _DetailPageState extends State<DetailPage> {
   // Setelah klaim pertama dikonfirmasi, tampilkan info pelapor
   bool _isClaimed = false;
+  String _resolvedReporterName = '';
+  String _resolvedReporterWhatsApp = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveReporterInfo();
+  }
+
+  String get _reporterNameDisplay {
+    if (widget.reporterName.trim().isNotEmpty) {
+      return widget.reporterName.trim();
+    }
+    if (_resolvedReporterName.trim().isNotEmpty) {
+      return _resolvedReporterName.trim();
+    }
+    if (FirebaseAuth.instance.currentUser?.uid == widget.reportUserId) {
+      final currentUserName =
+          (FirebaseAuth.instance.currentUser?.displayName ?? '').trim();
+      if (currentUserName.isNotEmpty) {
+        return currentUserName;
+      }
+      final email = FirebaseAuth.instance.currentUser?.email ?? '';
+      if (email.contains('@')) {
+        return email.split('@').first;
+      }
+    }
+    return '-';
+  }
+
+  String get _reporterWhatsAppDisplay {
+    if (widget.reporterWhatsApp.trim().isNotEmpty) {
+      return widget.reporterWhatsApp.trim();
+    }
+    if (_resolvedReporterWhatsApp.trim().isNotEmpty) {
+      return _resolvedReporterWhatsApp.trim();
+    }
+    return '-';
+  }
+
+  Future<void> _resolveReporterInfo() async {
+    if (widget.reporterName.trim().isNotEmpty &&
+        widget.reporterWhatsApp.trim().isNotEmpty) {
+      return;
+    }
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.reportUserId)
+          .get();
+      final data = snapshot.data();
+      if (data == null || !mounted) {
+        return;
+      }
+
+      setState(() {
+        _resolvedReporterName = (data['name'] as String?)?.trim() ?? '';
+        _resolvedReporterWhatsApp = (data['whatsApp'] as String?)?.trim() ?? '';
+      });
+    } catch (_) {
+      // Fallback tetap pakai nilai dari widget jika query gagal.
+    }
+  }
 
   // Dialog 1: Konfirmasi klaim barang
   void _showClaimDialog(BuildContext context) {
@@ -36,7 +109,9 @@ class _DetailPageState extends State<DetailPage> {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -50,7 +125,11 @@ class _DetailPageState extends State<DetailPage> {
                 const Text(
                   'Apakah barang ini milik anda? Kontak pelapor akan ditampilkan saat dikonfirmasi',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey,
+                    height: 1.5,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
@@ -60,10 +139,13 @@ class _DetailPageState extends State<DetailPage> {
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.grey),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    child: const Text('Batal',
-                        style: TextStyle(color: Colors.black)),
+                    child: const Text(
+                      'Batal',
+                      style: TextStyle(color: Colors.black),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -78,10 +160,13 @@ class _DetailPageState extends State<DetailPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0900FF),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    child: const Text('Klaim',
-                        style: TextStyle(color: Colors.white)),
+                    child: const Text(
+                      'Klaim',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ),
               ],
@@ -98,8 +183,9 @@ class _DetailPageState extends State<DetailPage> {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -113,7 +199,11 @@ class _DetailPageState extends State<DetailPage> {
                 const Text(
                   'Apakah barang ini sudah berada di tangan anda? konfirmasi jika sudah',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey,
+                    height: 1.5,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
@@ -123,10 +213,13 @@ class _DetailPageState extends State<DetailPage> {
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.grey),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    child: const Text('Batal',
-                        style: TextStyle(color: Colors.black)),
+                    child: const Text(
+                      'Batal',
+                      style: TextStyle(color: Colors.black),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -141,10 +234,13 @@ class _DetailPageState extends State<DetailPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0900FF),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    child: const Text('Ya, Sudah',
-                        style: TextStyle(color: Colors.white)),
+                    child: const Text(
+                      'Ya, Sudah',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ),
               ],
@@ -166,8 +262,10 @@ class _DetailPageState extends State<DetailPage> {
           icon: const Icon(Icons.arrow_back, color: Color(0xFF0900FF)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Kembali',
-            style: TextStyle(color: Color(0xFF0900FF), fontSize: 16)),
+        title: const Text(
+          'Kembali',
+          style: TextStyle(color: Color(0xFF0900FF), fontSize: 16),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -190,34 +288,46 @@ class _DetailPageState extends State<DetailPage> {
                           color: Colors.grey[200],
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Icon(Icons.image, size: 60, color: Colors.grey),
+                        child: const Icon(
+                          Icons.image,
+                          size: 60,
+                          color: Colors.grey,
+                        ),
                       ),
                     )
                   : (widget.imageUrl.isNotEmpty
-                      ? Image.memory(
-                          base64Decode(widget.imageUrl),
-                          width: double.infinity,
-                          height: 250,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                        ? Image.memory(
+                            base64Decode(widget.imageUrl),
+                            width: double.infinity,
+                            height: 250,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              width: double.infinity,
+                              height: 250,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Icon(
+                                Icons.image,
+                                size: 60,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          )
+                        : Container(
                             width: double.infinity,
                             height: 250,
                             decoration: BoxDecoration(
                               color: Colors.grey[200],
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Icon(Icons.image, size: 60, color: Colors.grey),
-                          ),
-                        )
-                      : Container(
-                          width: double.infinity,
-                          height: 250,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Icon(Icons.image, size: 60, color: Colors.grey),
-                        )),
+                            child: const Icon(
+                              Icons.image,
+                              size: 60,
+                              color: Colors.grey,
+                            ),
+                          )),
             ),
             const SizedBox(height: 20),
 
@@ -228,11 +338,15 @@ class _DetailPageState extends State<DetailPage> {
                 Text(
                   widget.title,
                   style: const TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.bold),
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: widget.statusColor.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
@@ -253,8 +367,10 @@ class _DetailPageState extends State<DetailPage> {
             const SizedBox(height: 20),
 
             // Deskripsi
-            const Text('Deskripsi',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text(
+              'Deskripsi',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             const SizedBox(height: 8),
             Text(
               widget.description,
@@ -263,12 +379,23 @@ class _DetailPageState extends State<DetailPage> {
             const SizedBox(height: 25),
 
             // Info Lokasi, Tanggal, Waktu
-            _buildInfoRow(Icons.location_on_outlined, 'Lokasi', 'Lorong Bawah'),
+            _buildInfoRow(
+              Icons.location_on_outlined,
+              'Lokasi',
+              widget.location.isEmpty ? '-' : widget.location,
+            ),
             const SizedBox(height: 15),
-            _buildInfoRow(Icons.calendar_today_outlined, 'Tanggal',
-                'Senin, 9 Maret 2026'),
+            _buildInfoRow(
+              Icons.calendar_today_outlined,
+              'Tanggal',
+              widget.date.isEmpty ? '-' : widget.date,
+            ),
             const SizedBox(height: 15),
-            _buildInfoRow(Icons.access_time, 'Waktu', '10.00 WIB'),
+            _buildInfoRow(
+              Icons.access_time,
+              'Waktu',
+              widget.time.isEmpty ? '-' : widget.time,
+            ),
 
             // Info Pelapor — hanya muncul setelah klaim
             if (_isClaimed) ...[
@@ -279,23 +406,33 @@ class _DetailPageState extends State<DetailPage> {
                 children: const [
                   Icon(Icons.person_outline, color: Color(0xFF0900FF)),
                   SizedBox(width: 10),
-                  Text('Dilaporkan Oleh',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15)),
+                  Text(
+                    'Dilaporkan Oleh',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
                 ],
               ),
               const SizedBox(height: 10),
-              const Text('Alfan',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(
+                _reporterNameDisplay,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
               const SizedBox(height: 6),
               Row(
-                children: const [
-                  Icon(Icons.phone_outlined,
-                      color: Color(0xFF0900FF), size: 18),
-                  SizedBox(width: 8),
-                  Text('+62 865 1432 2561',
-                      style: TextStyle(color: Colors.grey, fontSize: 14)),
+                children: [
+                  const Icon(
+                    Icons.phone_outlined,
+                    color: Color(0xFF0900FF),
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _reporterWhatsAppDisplay,
+                    style: const TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
                 ],
               ),
             ],
@@ -332,14 +469,16 @@ class _DetailPageState extends State<DetailPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0900FF),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: const Text(
                     'Klaim Barang ini',
                     style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
               )
@@ -355,12 +494,16 @@ class _DetailPageState extends State<DetailPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0900FF),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        child: const Text('Selesai',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Selesai',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -375,12 +518,16 @@ class _DetailPageState extends State<DetailPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.redAccent,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        child: const Text('Batal',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Batal',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -400,11 +547,14 @@ class _DetailPageState extends State<DetailPage> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 13)),
-            Text(value,
-                style: const TextStyle(color: Colors.grey, fontSize: 12)),
+            Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            Text(
+              value,
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
           ],
         ),
       ],

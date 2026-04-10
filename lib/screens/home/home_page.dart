@@ -133,21 +133,27 @@ class _HomePageState extends State<HomePage> {
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
                     final data = docs[index].data() as Map<String, dynamic>;
+                    final category = (data['category'] ?? 'Kehilangan')
+                        .toString()
+                        .toLowerCase();
+                    final isFoundItem = category.startsWith('temu');
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16),
                       child: _buildItemCard(
                         context,
                         title: data['title'] ?? 'Tanpa Nama',
-                        status: data['status'] ?? 'Hilang',
-                        statusColor:
-                            (data['status'] == 'Ditemukan' ||
-                                data['category'] == 'Menemukan')
+                        status: isFoundItem ? 'Ditemukan' : 'Hilang',
+                        statusColor: isFoundItem
                             ? Colors.greenAccent
                             : Colors.redAccent,
                         description: data['description'] ?? '',
                         date: data['date'] ?? '',
+                        time: data['time'] ?? '',
+                        location: data['location'] ?? '',
                         imageUrl: data['imageUrl'] ?? '',
                         reportUserId: data['userId'] ?? '',
+                        reporterName: data['reporterName'] ?? '',
+                        reporterWhatsApp: data['reporterWhatsApp'] ?? '',
                       ),
                     );
                   },
@@ -167,8 +173,12 @@ class _HomePageState extends State<HomePage> {
     required Color statusColor,
     required String description,
     required String date,
+    required String time,
+    required String location,
     required String imageUrl,
     required String reportUserId,
+    required String reporterName,
+    required String reporterWhatsApp,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -310,7 +320,11 @@ class _HomePageState extends State<HomePage> {
                                 statusColor: statusColor,
                                 description: description,
                                 date: date,
+                                time: time,
+                                location: location,
                                 reportUserId: reportUserId,
+                                reporterName: reporterName,
+                                reporterWhatsApp: reporterWhatsApp,
                               ),
                             ),
                           );
