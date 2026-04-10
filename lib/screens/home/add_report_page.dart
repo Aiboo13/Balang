@@ -28,6 +28,24 @@ class _AddReportPageState extends State<AddReportPage> {
   String? _base64Image;
   bool _isLoading = false;
 
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(now.year - 10),
+      lastDate: DateTime(now.year + 10),
+      helpText: 'Pilih Tanggal Kejadian',
+    );
+
+    if (selected != null) {
+      final day = selected.day.toString().padLeft(2, '0');
+      final month = selected.month.toString().padLeft(2, '0');
+      final year = selected.year.toString();
+      _dateController.text = '$day/$month/$year';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +64,15 @@ class _AddReportPageState extends State<AddReportPage> {
     );
     _selectedCategory = widget.existingData?['category'] ?? 'Kehilangan';
     _base64Image = widget.existingData?['imageUrl'];
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descController.dispose();
+    _locationController.dispose();
+    _dateController.dispose();
+    super.dispose();
   }
 
   Future<void> _pickImage() async {
@@ -213,6 +240,8 @@ class _AddReportPageState extends State<AddReportPage> {
                     const SizedBox(height: 15),
                     TextFormField(
                       controller: _dateController,
+                      readOnly: true,
+                      onTap: _pickDate,
                       decoration: const InputDecoration(
                         labelText: 'Tanggal Kejadian',
                         prefixIcon: Icon(Icons.calendar_today),

@@ -1,11 +1,38 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../home/notification_page.dart';
 import '../home/detail_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  User? get _currentUser => FirebaseAuth.instance.currentUser;
+
+  String get _displayName {
+    final user = _currentUser;
+    if (user == null) {
+      return 'User';
+    }
+
+    final name = (user.displayName ?? '').trim();
+    if (name.isNotEmpty) {
+      return name;
+    }
+
+    final email = user.email ?? '';
+    if (email.contains('@')) {
+      return email.split('@').first;
+    }
+
+    return 'User';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +43,12 @@ class HomePage extends StatelessWidget {
           // --- HEADER BIRU ---
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.only(top: 60, left: 25, right: 25, bottom: 30),
+            padding: const EdgeInsets.only(
+              top: 60,
+              left: 25,
+              right: 25,
+              bottom: 30,
+            ),
             decoration: const BoxDecoration(
               color: Color(0xFF0900FF),
               borderRadius: BorderRadius.only(
@@ -30,17 +62,17 @@ class HomePage extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        CircleAvatar(
+                        const CircleAvatar(
                           radius: 20,
                           backgroundColor: Colors.white24,
                           child: Icon(Icons.person, color: Colors.white),
                         ),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         Text(
-                          "Halo, Alfan",
-                          style: TextStyle(
+                          'Halo, $_displayName',
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -49,13 +81,17 @@ class HomePage extends StatelessWidget {
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.notifications_none_rounded,
-                          color: Colors.white, size: 28),
+                      icon: const Icon(
+                        Icons.notifications_none_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
                       onPressed: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const NotificationPage()),
+                            builder: (context) => const NotificationPage(),
+                          ),
                         );
                       },
                     ),
@@ -78,7 +114,10 @@ class HomePage extends StatelessWidget {
           // --- DAFTAR BARANG ---
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('reports').orderBy('createdAt', descending: true).snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection('reports')
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -86,9 +125,9 @@ class HomePage extends StatelessWidget {
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(child: Text("Belum ada laporan."));
                 }
-                
+
                 final docs = snapshot.data!.docs;
-                
+
                 return ListView.builder(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
                   itemCount: docs.length,
@@ -100,8 +139,10 @@ class HomePage extends StatelessWidget {
                         context,
                         title: data['title'] ?? 'Tanpa Nama',
                         status: data['status'] ?? 'Hilang',
-                        statusColor: (data['status'] == 'Ditemukan' || data['category'] == 'Menemukan') 
-                            ? Colors.greenAccent 
+                        statusColor:
+                            (data['status'] == 'Ditemukan' ||
+                                data['category'] == 'Menemukan')
+                            ? Colors.greenAccent
                             : Colors.redAccent,
                         description: data['description'] ?? '',
                         date: data['date'] ?? '',
@@ -151,10 +192,16 @@ class HomePage extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -193,25 +240,31 @@ class HomePage extends StatelessWidget {
                           child: const Icon(Icons.image, color: Colors.grey),
                         ),
                       )
-                    : (imageUrl.isNotEmpty 
-                        ? Image.memory(
-                            base64Decode(imageUrl),
-                            width: 110,
-                            height: 85,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
+                    : (imageUrl.isNotEmpty
+                          ? Image.memory(
+                              base64Decode(imageUrl),
+                              width: 110,
+                              height: 85,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 110,
+                                height: 85,
+                                color: Colors.grey[200],
+                                child: const Icon(
+                                  Icons.image,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            )
+                          : Container(
                               width: 110,
                               height: 85,
                               color: Colors.grey[200],
-                              child: const Icon(Icons.image, color: Colors.grey),
-                            ),
-                          )
-                        : Container(
-                            width: 110,
-                            height: 85,
-                            color: Colors.grey[200],
-                            child: const Icon(Icons.image, color: Colors.grey),
-                          )),
+                              child: const Icon(
+                                Icons.image,
+                                color: Colors.grey,
+                              ),
+                            )),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -220,17 +273,28 @@ class HomePage extends StatelessWidget {
                   children: [
                     Text(
                       description,
-                      style: const TextStyle(fontSize: 12, color: Colors.black87),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black87,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
-                    const Text('Date',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 12)),
-                    Text(date,
-                        style: const TextStyle(
-                            fontSize: 11, color: Colors.black54)),
+                    const Text(
+                      'Date',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      date,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.black54,
+                      ),
+                    ),
                     const SizedBox(height: 10),
                     Align(
                       alignment: Alignment.centerRight,
@@ -254,7 +318,9 @@ class HomePage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 6),
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF0900FF),
                             borderRadius: BorderRadius.circular(8),
