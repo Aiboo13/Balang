@@ -19,9 +19,8 @@ class _HistoryPageState extends State<HistoryPage> {
     final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF5F5F5),
       body: StreamBuilder<QuerySnapshot>(
-        // Menggunakan filter langsung di query lebih efisien
         stream: FirebaseFirestore.instance
             .collection('reports')
             .where('userId', isEqualTo: currentUserId)
@@ -37,35 +36,24 @@ class _HistoryPageState extends State<HistoryPage> {
 
           final allDocs = snapshot.data?.docs ?? [];
 
-          // Sorting manual berdasarkan waktu (karena query Firestore butuh index untuk orderBy)
           List<QueryDocumentSnapshot> docs = List.from(allDocs);
           docs.sort((a, b) {
-            final aTime =
-                (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
-            final bTime =
-                (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+            final aTime = (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+            final bTime = (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
             if (aTime == null || bTime == null) return 0;
             return bTime.compareTo(aTime);
           });
 
-          // Hitung Statistik berdasarkan field 'reportStatus'
           int total = docs.length;
-          int aktif = 0;
-          int pending = 0;
-          int selesai = 0;
-
+          int aktif = 0, pending = 0, selesai = 0;
           for (var doc in docs) {
             final data = doc.data() as Map<String, dynamic>;
             final status = data['reportStatus'] ?? 'Aktif';
-            if (status == 'Aktif')
-              aktif++;
-            else if (status == 'Pending')
-              pending++;
-            else if (status == 'Selesai')
-              selesai++;
+            if (status == 'Aktif') aktif++;
+            else if (status == 'Pending') pending++;
+            else if (status == 'Selesai') selesai++;
           }
 
-          // Filter Tab
           List<QueryDocumentSnapshot> filteredDocs = docs;
           if (_selectedTab != 'Semua') {
             filteredDocs = docs.where((doc) {
@@ -76,21 +64,17 @@ class _HistoryPageState extends State<HistoryPage> {
 
           return Column(
             children: [
-              // --- Header Biru (Tetap sama seperti kode Anda) ---
               _buildHeader(total, aktif, pending, selesai),
-
-              // --- Area Daftar History ---
               if (filteredDocs.isEmpty)
                 _buildEmptyState()
               else
                 Expanded(
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
                     itemCount: filteredDocs.length,
                     itemBuilder: (context, index) {
                       final docId = filteredDocs[index].id;
-                      final data =
-                          filteredDocs[index].data() as Map<String, dynamic>;
+                      final data = filteredDocs[index].data() as Map<String, dynamic>;
                       return _buildHistoryCard(context, docId, data);
                     },
                   ),
@@ -101,8 +85,6 @@ class _HistoryPageState extends State<HistoryPage> {
       ),
     );
   }
-
-  // --- Widget Helper agar kode lebih bersih ---
 
   Widget _buildHeader(int total, int aktif, int pending, int selesai) {
     return Container(
@@ -118,34 +100,28 @@ class _HistoryPageState extends State<HistoryPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Judul
           Row(
             children: [
-              const Icon(
-                Icons.access_time_filled,
-                color: Colors.white,
-                size: 28,
-              ),
+              const Icon(Icons.access_time_filled, color: Colors.white, size: 28),
               const SizedBox(width: 10),
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'History',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    'Laporan Saya',
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
-                  ),
+                children: [
+                  Text('History',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold)),
+                  Text('Laporan Saya',
+                      style: TextStyle(color: Colors.white70, fontSize: 12)),
                 ],
               ),
             ],
           ),
           const SizedBox(height: 25),
+
+          // Statistik
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -156,6 +132,8 @@ class _HistoryPageState extends State<HistoryPage> {
             ],
           ),
           const SizedBox(height: 20),
+
+          // Tab filter di dalam header
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
@@ -163,231 +141,13 @@ class _HistoryPageState extends State<HistoryPage> {
               borderRadius: BorderRadius.circular(30),
             ),
             child: Row(
-              children: [
-                'Semua',
-                'Aktif',
-                'Pending',
-                'Selesai',
-              ].map((e) => _buildTab(e)).toList(),
+              children: ['Semua', 'Aktif', 'Pending', 'Selesai']
+                  .map((e) => _buildTab(e))
+                  .toList(),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildHistoryCard(
-    BuildContext context,
-    String docId,
-    Map<String, dynamic> data,
-  ) {
-    // Sesuaikan pengambilan data dengan gambar Firestore Anda
-    final title = data['title'] ?? 'Tanpa Nama';
-    final desc = data['description'] ?? '';
-    final category = data['category'] ?? 'Kehilangan';
-    final isHilang = category == 'Kehilangan';
-    final reportStatus = data['reportStatus'] ?? 'Aktif'; // Default ke Aktif
-    final imageUrl = data['imageUrl'];
-
-    Color statusColor = reportStatus == 'Aktif'
-        ? Colors.green
-        : (reportStatus == 'Pending' ? Colors.orange : Colors.blueGrey);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF0900FF).withOpacity(0.3),
-          width: 1.5,
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image Loader (Base64 atau URL)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: _buildImage(imageUrl),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        PopupMenuButton<String>(
-                          onSelected: (val) =>
-                              _handleMenuAction(context, val, docId, data),
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Text('Edit'),
-                            ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Text(
-                                'Hapus',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ],
-                          child: const Icon(
-                            Icons.more_vert,
-                            size: 20,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      desc,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
-                    _buildIconText(
-                      Icons.location_on_outlined,
-                      data['location'] ?? '-',
-                    ),
-                    _buildIconText(
-                      Icons.calendar_today_outlined,
-                      data['date'] ?? '-',
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const Divider(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Status Laporan:",
-                style: TextStyle(fontSize: 11, color: Colors.grey),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  reportStatus,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- Fungsi Tambahan ---
-
-  void _handleMenuAction(
-    BuildContext context,
-    String action,
-    String docId,
-    Map<String, dynamic> data,
-  ) {
-    if (action == 'edit') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AddReportPage(docId: docId, existingData: data),
-        ),
-      );
-    } else if (action == 'delete') {
-      _showDeleteDialog(context, docId);
-    }
-  }
-
-  void _showDeleteDialog(BuildContext context, String docId) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hapus'),
-        content: const Text('Yakin ingin menghapus laporan ini?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await FirebaseFirestore.instance
-                  .collection('reports')
-                  .doc(docId)
-                  .delete();
-            },
-            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImage(dynamic imageUrl) {
-    if (imageUrl == null || imageUrl.toString().isEmpty) {
-      return Container(
-        width: 80,
-        height: 80,
-        color: Colors.grey[200],
-        child: const Icon(Icons.image_not_supported),
-      );
-    }
-    if (imageUrl.toString().startsWith('http')) {
-      return Image.network(imageUrl, width: 80, height: 80, fit: BoxFit.cover);
-    }
-    return Image.memory(
-      base64Decode(imageUrl),
-      width: 80,
-      height: 80,
-      fit: BoxFit.cover,
-    );
-  }
-
-  Widget _buildIconText(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 12, color: const Color(0xFF0900FF)),
-        const SizedBox(width: 4),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(fontSize: 11),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
     );
   }
 
@@ -401,18 +161,13 @@ class _HistoryPageState extends State<HistoryPage> {
       ),
       child: Column(
         children: [
-          Text(
-            count,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontSize: 11),
-          ),
+          Text(count,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18)),
+          Text(label,
+              style: const TextStyle(color: Colors.white, fontSize: 11)),
         ],
       ),
     );
@@ -423,7 +178,8 @@ class _HistoryPageState extends State<HistoryPage> {
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _selectedTab = label),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: isActive ? const Color(0xFF3333CC) : Colors.transparent,
@@ -435,6 +191,7 @@ class _HistoryPageState extends State<HistoryPage> {
               style: TextStyle(
                 color: isActive ? Colors.white : Colors.white70,
                 fontSize: 12,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ),
@@ -449,18 +206,285 @@ class _HistoryPageState extends State<HistoryPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.inventory_2_outlined,
-              size: 80,
-              color: Colors.grey,
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0900FF).withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.inventory_2_outlined,
+                  size: 50, color: Color(0xFF0900FF)),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             const Text(
-              "Belum ada laporan",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              'Belum ada laporan',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Anda belum melaporkan barang hilang\natau temuan',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.5),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryCard(
+    BuildContext context,
+    String docId,
+    Map<String, dynamic> data,
+  ) {
+    final title = data['title'] ?? 'Tanpa Nama';
+    final desc = data['description'] ?? '';
+    final category = data['category'] ?? 'Kehilangan';
+    final isHilang = category == 'Kehilangan';
+    final reportStatus = data['reportStatus'] ?? 'Aktif';
+    final imageUrl = data['imageUrl'];
+
+    // Warna badge Hilang/Ditemukan
+    final categoryColor = isHilang ? Colors.redAccent : Colors.green;
+
+    // Warna badge status laporan
+    Color statusColor;
+    switch (reportStatus) {
+      case 'Aktif':
+        statusColor = Colors.green;
+        break;
+      case 'Pending':
+        statusColor = Colors.orange;
+        break;
+      case 'Selesai':
+        statusColor = Colors.blueGrey;
+        break;
+      default:
+        statusColor = Colors.grey;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Gambar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: _buildImage(imageUrl),
+              ),
+              const SizedBox(width: 14),
+
+              // Detail
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Judul + menu
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 15),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        // Badge Hilang/Ditemukan
+                        Container(
+                          margin: const EdgeInsets.only(left: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: categoryColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            isHilang ? 'Hilang' : 'Ditemukan',
+                            style: TextStyle(
+                                color: categoryColor,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        PopupMenuButton<String>(
+                          onSelected: (val) =>
+                              _handleMenuAction(context, val, docId, data),
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                                value: 'edit', child: Text('Edit')),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Text('Hapus',
+                                  style: TextStyle(color: Colors.red)),
+                            ),
+                          ],
+                          child: const Icon(Icons.more_vert,
+                              size: 20, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+
+                    // Deskripsi
+                    Text(
+                      desc,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Lokasi & Tanggal
+                    _buildIconText(
+                        Icons.location_on_outlined, data['location'] ?? '-'),
+                    _buildIconText(
+                        Icons.calendar_today_outlined, data['date'] ?? '-'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+          const Divider(height: 1),
+          const SizedBox(height: 10),
+
+          // Status laporan di bawah
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Status Laporan:',
+                  style: TextStyle(fontSize: 11, color: Colors.grey)),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  reportStatus,
+                  style: TextStyle(
+                      color: statusColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleMenuAction(
+    BuildContext context,
+    String action,
+    String docId,
+    Map<String, dynamic> data,
+  ) {
+    if (action == 'edit') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              AddReportPage(docId: docId, existingData: data),
+        ),
+      );
+    } else if (action == 'delete') {
+      _showDeleteDialog(context, docId);
+    }
+  }
+
+  void _showDeleteDialog(BuildContext context, String docId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Hapus Laporan',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('Yakin ingin menghapus laporan ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal',
+                style: TextStyle(color: Colors.black54)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await FirebaseFirestore.instance
+                  .collection('reports')
+                  .doc(docId)
+                  .delete();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Hapus',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImage(dynamic imageUrl) {
+    if (imageUrl == null || imageUrl.toString().isEmpty) {
+      return Container(
+        width: 85,
+        height: 85,
+        color: Colors.grey[200],
+        child: const Icon(Icons.image_not_supported, color: Colors.grey),
+      );
+    }
+    if (imageUrl.toString().startsWith('http')) {
+      return Image.network(imageUrl,
+          width: 85, height: 85, fit: BoxFit.cover);
+    }
+    return Image.memory(
+      base64Decode(imageUrl),
+      width: 85,
+      height: 85,
+      fit: BoxFit.cover,
+    );
+  }
+
+  Widget _buildIconText(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3),
+      child: Row(
+        children: [
+          Icon(icon, size: 12, color: const Color(0xFF0900FF)),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 11, color: Colors.black54),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
