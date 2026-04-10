@@ -20,8 +20,8 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   void _checkStatus() async {
-    // Tunggu animasi splash misalnya 3 detik
-    await Future.delayed(const Duration(seconds: 3));
+    // Tunggu animasi splash misalnya 2 detik
+    await Future.delayed(const Duration(seconds: 2));
     
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
