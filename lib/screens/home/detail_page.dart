@@ -78,6 +78,37 @@ class _DetailPageState extends State<DetailPage> {
     return '-';
   }
 
+  String get _claimButtonText {
+    final normalizedStatus = widget.status.trim().toLowerCase();
+    if (normalizedStatus == 'hilang') {
+      return 'Saya menemukanya';
+    }
+    return 'Klaim Barang ini';
+  }
+
+  bool get _isLostReport => widget.status.trim().toLowerCase() == 'hilang';
+
+  String get _claimDialogDescription {
+    if (_isLostReport) {
+      return 'Apakah anda menemukan barang ini? Kontak pelapor akan ditampilkan agar anda bisa menghubunginya.';
+    }
+    return 'Apakah barang ini milik anda? Kontak pelapor akan ditampilkan saat dikonfirmasi';
+  }
+
+  String get _claimDialogActionText {
+    if (_isLostReport) {
+      return 'Ya, saya menemukan';
+    }
+    return 'Klaim';
+  }
+
+  String get _claimSnackBarText {
+    if (_isLostReport) {
+      return 'Kontak pelapor ditampilkan. Silakan hubungi pelapor untuk pengembalian barang.';
+    }
+    return 'Kontak pelapor ditampilkan. Silakan verifikasi barang dengan pelapor.';
+  }
+
   Future<void> _resolveReporterInfo() async {
     if (widget.reporterName.trim().isNotEmpty &&
         widget.reporterWhatsApp.trim().isNotEmpty) {
@@ -122,10 +153,10 @@ class _DetailPageState extends State<DetailPage> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Apakah barang ini milik anda? Kontak pelapor akan ditampilkan saat dikonfirmasi',
+                Text(
+                  _claimDialogDescription,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 13,
                     color: Colors.grey,
                     height: 1.5,
@@ -156,6 +187,9 @@ class _DetailPageState extends State<DetailPage> {
                       Navigator.pop(context);
                       // Tampilkan info pelapor
                       setState(() => _isClaimed = true);
+                      ScaffoldMessenger.of(this.context).showSnackBar(
+                        SnackBar(content: Text(_claimSnackBarText)),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0900FF),
@@ -163,9 +197,9 @@ class _DetailPageState extends State<DetailPage> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: const Text(
-                      'Klaim',
-                      style: TextStyle(color: Colors.white),
+                    child: Text(
+                      _claimDialogActionText,
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
                 ),
@@ -472,9 +506,9 @@ class _DetailPageState extends State<DetailPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Klaim Barang ini',
-                    style: TextStyle(
+                  child: Text(
+                    _claimButtonText,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
