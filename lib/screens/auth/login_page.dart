@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-// UBAH IMPORT INI: Arahkan ke file main.dart (tempat MainScreen berada)
-// Jika MainScreen ada di main.dart, gunakan path relatif yang sesuai
 import '../../main.dart';
 import 'register_page.dart';
-
 import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginPage extends StatefulWidget {
@@ -75,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // ... (Bagian dekorasi lingkaran tetap sama)
+          // Dekorasi Lingkaran Atas
           Positioned(
             right: -50,
             top: -50,
@@ -89,6 +86,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
 
+          // Dekorasi Lingkaran Bawah
           Positioned(
             left: -80,
             bottom: -80,
@@ -103,112 +101,121 @@ class _LoginPageState extends State<LoginPage> {
           ),
 
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // ... (Bagian Text LOGIN dan Welcome tetap sama)
-                  const Text(
-                    'LOGIN',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0900FF),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    "Welcome back you've\nbeen missed",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 50),
-
-                  _buildInputField(
-                    label: 'Email',
-                    hintText: 'Email Address',
-                    isPassword: false,
-                    controller: _emailController,
-                  ),
-                  const SizedBox(height: 20),
-
-                  _buildInputField(
-                    label: 'Password',
-                    hintText: 'Password',
-                    isPassword: true,
-                    controller: _passwordController,
-                  ),
-
-                  if (_errorMessage != null) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      _errorMessage!,
-                      style: const TextStyle(
-                        color: Colors.red,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                  ] else ...[
-                    const SizedBox(height: 40),
-                  ],
-
-                  // PERBAIKAN TOMBOL LOGIN
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0900FF),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: _isLoading ? null : _login,
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                              'LOGIN',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // REGISTER LINK (Sudah Benar)
-                  Row(
+            child: Center( // BIAR KONTEN DI TENGAH
+              child: SingleChildScrollView( // BIAR BISA SCROLL PAS KEYBOARD MUNCUL
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 400), // BATAS LEBAR FORM
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('New here? '),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const RegisterPage(),
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          'Register now',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                      const Text(
+                        'LOGIN',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0900FF),
                         ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        "Welcome back you've\nbeen missed",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 50),
+
+                      _buildInputField(
+                        label: 'Email',
+                        hintText: 'Email Address',
+                        isPassword: false,
+                        controller: _emailController,
+                      ),
+                      const SizedBox(height: 20),
+
+                      _buildInputField(
+                        label: 'Password',
+                        hintText: 'Password',
+                        isPassword: true,
+                        controller: _passwordController,
+                      ),
+
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          _errorMessage!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                      ] else ...[
+                        const SizedBox(height: 40),
+                      ],
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 55,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0900FF),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: _isLoading ? null : _login,
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 3,
+                                  ),
+                                )
+                              : const Text(
+                                  'LOGIN',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('New here? '),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const RegisterPage(),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              'Register now',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -217,7 +224,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // Widget Input Field (identik dengan register)
   Widget _buildInputField({
     required String label,
     required String hintText,
@@ -227,7 +233,7 @@ class _LoginPageState extends State<LoginPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
