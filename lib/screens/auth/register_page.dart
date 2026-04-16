@@ -17,6 +17,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
   String? _errorMessage;
 
   void _register() async {
@@ -83,7 +85,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       body: Stack(
         children: [
@@ -119,7 +124,7 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Center(
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: EdgeInsets.fromLTRB(24, 0, 24, keyboardInset),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 480),
                     child: Column(
@@ -169,6 +174,12 @@ class _RegisterPageState extends State<RegisterPage> {
                           hintText: 'Password',
                           isPassword: true,
                           controller: _passwordController,
+                          isPasswordVisible: _isPasswordVisible,
+                          onTogglePasswordVisibility: () {
+                            setState(() {
+                              _isPasswordVisible = !_isPasswordVisible;
+                            });
+                          },
                         ),
                         const SizedBox(height: 20),
 
@@ -177,6 +188,13 @@ class _RegisterPageState extends State<RegisterPage> {
                           hintText: 'Confirm Password',
                           isPassword: true,
                           controller: _confirmController,
+                          isPasswordVisible: _isConfirmPasswordVisible,
+                          onTogglePasswordVisibility: () {
+                            setState(() {
+                              _isConfirmPasswordVisible =
+                                  !_isConfirmPasswordVisible;
+                            });
+                          },
                         ),
 
                         if (_errorMessage != null) ...[
@@ -271,6 +289,8 @@ class _RegisterPageState extends State<RegisterPage> {
     required String hintText,
     required bool isPassword,
     TextEditingController? controller,
+    bool isPasswordVisible = false,
+    VoidCallback? onTogglePasswordVisibility,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,10 +307,20 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
           child: TextField(
             controller: controller,
-            obscureText: isPassword,
+            obscureText: isPassword ? !isPasswordVisible : false,
             decoration: InputDecoration(
               hintText: hintText,
               hintStyle: const TextStyle(color: Colors.black87, fontSize: 15),
+              suffixIcon: isPassword
+                  ? IconButton(
+                      icon: Icon(
+                        isPasswordVisible
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: onTogglePasswordVisibility,
+                    )
+                  : null,
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,

@@ -14,6 +14,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
   String? _errorMessage;
 
   void _login() async {
@@ -68,7 +69,10 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       body: Stack(
         children: [
@@ -101,11 +105,15 @@ class _LoginPageState extends State<LoginPage> {
           ),
 
           SafeArea(
-            child: Center( // BIAR KONTEN DI TENGAH
-              child: SingleChildScrollView( // BIAR BISA SCROLL PAS KEYBOARD MUNCUL
+            child: Center(
+              // BIAR KONTEN DI TENGAH
+              child: SingleChildScrollView(
+                // BIAR BISA SCROLL PAS KEYBOARD MUNCUL
                 child: Container(
-                  constraints: const BoxConstraints(maxWidth: 400), // BATAS LEBAR FORM
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  constraints: const BoxConstraints(
+                    maxWidth: 400,
+                  ), // BATAS LEBAR FORM
+                  padding: EdgeInsets.fromLTRB(24, 0, 24, keyboardInset),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -242,9 +250,23 @@ class _LoginPageState extends State<LoginPage> {
           ),
           child: TextField(
             controller: controller,
-            obscureText: isPassword,
+            obscureText: isPassword ? !_isPasswordVisible : false,
             decoration: InputDecoration(
               hintText: hintText,
+              suffixIcon: isPassword
+                  ? IconButton(
+                      icon: Icon(
+                        _isPasswordVisible
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isPasswordVisible = !_isPasswordVisible;
+                        });
+                      },
+                    )
+                  : null,
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
