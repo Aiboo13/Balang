@@ -13,6 +13,107 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage> {
   String _selectedTab = 'Semua';
+  final Set<String> _processingDecisionDocIds = <String>{};
+
+  Future<void> _decideClaimFromHistory({
+    required String docId,
+    required bool accepted,
+  }) async {
+    if (_processingDecisionDocIds.contains(docId)) {
+      return;
+    }
+
+    setState(() => _processingDecisionDocIds.add(docId));
+    try {
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final updateData = <String, dynamic>{
+        'reportStatus': accepted ? 'Selesai' : 'Aktif',
+        'claimStatus': accepted ? 'Accepted' : 'None',
+        'claimRespondedAt': FieldValue.serverTimestamp(),
+        'decidedBy': currentUserId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (!accepted) {
+        updateData['claimerId'] = FieldValue.delete();
+        updateData['claimerName'] = FieldValue.delete();
+        updateData['claimerWhatsApp'] = FieldValue.delete();
+        updateData['claimRequestedAt'] = FieldValue.delete();
+      }
+
+      await FirebaseFirestore.instance
+          .collection('reports')
+          .doc(docId)
+          .update(updateData);
+
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            accepted
+                ? 'Klaim disetujui. Laporan dipindah ke status selesai.'
+                : 'Klaim ditolak. Laporan kembali ke status aktif.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal memproses keputusan: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _processingDecisionDocIds.remove(docId));
+      }
+    }
+  }
+
+  void _showDecisionDialog(
+    BuildContext context, {
+    required String docId,
+    required bool accept,
+  }) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Konfirmasi Klaim',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          accept
+              ? 'Setujui klaim ini? Laporan akan dipindah ke status selesai.'
+              : 'Tolak klaim ini? Laporan akan kembali ke status aktif.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: Colors.black54)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _decideClaimFromHistory(docId: docId, accepted: accept);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: accept
+                  ? const Color(0xFF0900FF)
+                  : Colors.redAccent,
+            ),
+            child: Text(
+              accept ? 'Accept' : 'Reject',
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,8 +139,10 @@ class _HistoryPageState extends State<HistoryPage> {
 
           List<QueryDocumentSnapshot> docs = List.from(allDocs);
           docs.sort((a, b) {
-            final aTime = (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
-            final bTime = (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+            final aTime =
+                (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+            final bTime =
+                (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
             if (aTime == null || bTime == null) return 0;
             return bTime.compareTo(aTime);
           });
@@ -49,9 +152,12 @@ class _HistoryPageState extends State<HistoryPage> {
           for (var doc in docs) {
             final data = doc.data() as Map<String, dynamic>;
             final status = data['reportStatus'] ?? 'Aktif';
-            if (status == 'Aktif') aktif++;
-            else if (status == 'Pending') pending++;
-            else if (status == 'Selesai') selesai++;
+            if (status == 'Aktif')
+              aktif++;
+            else if (status == 'Pending')
+              pending++;
+            else if (status == 'Selesai')
+              selesai++;
           }
 
           List<QueryDocumentSnapshot> filteredDocs = docs;
@@ -74,7 +180,8 @@ class _HistoryPageState extends State<HistoryPage> {
                     itemCount: filteredDocs.length,
                     itemBuilder: (context, index) {
                       final docId = filteredDocs[index].id;
-                      final data = filteredDocs[index].data() as Map<String, dynamic>;
+                      final data =
+                          filteredDocs[index].data() as Map<String, dynamic>;
                       return _buildHistoryCard(context, docId, data);
                     },
                   ),
@@ -103,18 +210,27 @@ class _HistoryPageState extends State<HistoryPage> {
           // Judul
           Row(
             children: [
-              const Icon(Icons.access_time_filled, color: Colors.white, size: 28),
+              const Icon(
+                Icons.access_time_filled,
+                color: Colors.white,
+                size: 28,
+              ),
               const SizedBox(width: 10),
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('History',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold)),
-                  Text('Laporan Saya',
-                      style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  Text(
+                    'History',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Laporan Saya',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
                 ],
               ),
             ],
@@ -141,9 +257,12 @@ class _HistoryPageState extends State<HistoryPage> {
               borderRadius: BorderRadius.circular(30),
             ),
             child: Row(
-              children: ['Semua', 'Aktif', 'Pending', 'Selesai']
-                  .map((e) => _buildTab(e))
-                  .toList(),
+              children: [
+                'Semua',
+                'Aktif',
+                'Pending',
+                'Selesai',
+              ].map((e) => _buildTab(e)).toList(),
             ),
           ),
         ],
@@ -161,13 +280,18 @@ class _HistoryPageState extends State<HistoryPage> {
       ),
       child: Column(
         children: [
-          Text(count,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18)),
-          Text(label,
-              style: const TextStyle(color: Colors.white, fontSize: 11)),
+          Text(
+            count,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 11),
+          ),
         ],
       ),
     );
@@ -213,8 +337,11 @@ class _HistoryPageState extends State<HistoryPage> {
                 color: const Color(0xFF0900FF).withOpacity(0.08),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.inventory_2_outlined,
-                  size: 50, color: Color(0xFF0900FF)),
+              child: const Icon(
+                Icons.inventory_2_outlined,
+                size: 50,
+                color: Color(0xFF0900FF),
+              ),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -243,6 +370,18 @@ class _HistoryPageState extends State<HistoryPage> {
     final category = data['category'] ?? 'Kehilangan';
     final isHilang = category == 'Kehilangan';
     final reportStatus = data['reportStatus'] ?? 'Aktif';
+    final claimStatus = (data['claimStatus'] ?? 'None').toString();
+    final claimerName = (data['claimerName'] ?? '').toString().trim();
+    final claimerWhatsApp = (data['claimerWhatsApp'] ?? '').toString().trim();
+    final claimerWhatsAppDisplay = claimerWhatsApp.isNotEmpty
+        ? claimerWhatsApp
+        : '-';
+    final isPendingClaim =
+        claimStatus == 'Pending' ||
+        (claimStatus == 'None' && reportStatus == 'Pending');
+    final showClaimerInfo =
+        claimerName.isNotEmpty && (isPendingClaim || reportStatus == 'Selesai');
+    final isProcessingDecision = _processingDecisionDocIds.contains(docId);
     final imageUrl = data['imageUrl'];
 
     // Warna badge Hilang/Ditemukan
@@ -303,7 +442,9 @@ class _HistoryPageState extends State<HistoryPage> {
                           child: Text(
                             title,
                             style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 15),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -311,7 +452,9 @@ class _HistoryPageState extends State<HistoryPage> {
                         Container(
                           margin: const EdgeInsets.only(left: 6),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 3),
+                            horizontal: 10,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: categoryColor.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(20),
@@ -319,9 +462,10 @@ class _HistoryPageState extends State<HistoryPage> {
                           child: Text(
                             isHilang ? 'Hilang' : 'Ditemukan',
                             style: TextStyle(
-                                color: categoryColor,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold),
+                              color: categoryColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                         PopupMenuButton<String>(
@@ -329,15 +473,22 @@ class _HistoryPageState extends State<HistoryPage> {
                               _handleMenuAction(context, val, docId, data),
                           itemBuilder: (context) => [
                             const PopupMenuItem(
-                                value: 'edit', child: Text('Edit')),
+                              value: 'edit',
+                              child: Text('Edit'),
+                            ),
                             const PopupMenuItem(
                               value: 'delete',
-                              child: Text('Hapus',
-                                  style: TextStyle(color: Colors.red)),
+                              child: Text(
+                                'Hapus',
+                                style: TextStyle(color: Colors.red),
+                              ),
                             ),
                           ],
-                          child: const Icon(Icons.more_vert,
-                              size: 20, color: Colors.grey),
+                          child: const Icon(
+                            Icons.more_vert,
+                            size: 20,
+                            color: Colors.grey,
+                          ),
                         ),
                       ],
                     ),
@@ -347,16 +498,19 @@ class _HistoryPageState extends State<HistoryPage> {
                       desc,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style:
-                          const TextStyle(fontSize: 12, color: Colors.grey),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                     const SizedBox(height: 8),
 
                     // Lokasi & Tanggal
                     _buildIconText(
-                        Icons.location_on_outlined, data['location'] ?? '-'),
+                      Icons.location_on_outlined,
+                      data['location'] ?? '-',
+                    ),
                     _buildIconText(
-                        Icons.calendar_today_outlined, data['date'] ?? '-'),
+                      Icons.calendar_today_outlined,
+                      data['date'] ?? '-',
+                    ),
                   ],
                 ),
               ),
@@ -371,11 +525,15 @@ class _HistoryPageState extends State<HistoryPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Status Laporan:',
-                  style: TextStyle(fontSize: 11, color: Colors.grey)),
+              const Text(
+                'Status Laporan:',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),
@@ -383,13 +541,110 @@ class _HistoryPageState extends State<HistoryPage> {
                 child: Text(
                   reportStatus,
                   style: TextStyle(
-                      color: statusColor,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold),
+                    color: statusColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
           ),
+          if (showClaimerInfo) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(
+                  Icons.person_outline,
+                  size: 14,
+                  color: Color(0xFF0900FF),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    reportStatus == 'Selesai'
+                        ? 'Diklaim oleh: $claimerName'
+                        : 'Pengklaim / Penemu: $claimerName',
+                    style: const TextStyle(fontSize: 11, color: Colors.black54),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(
+                  Icons.phone_outlined,
+                  size: 13,
+                  color: Color(0xFF0900FF),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    claimerWhatsAppDisplay,
+                    style: const TextStyle(fontSize: 11, color: Colors.black54),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (isPendingClaim) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 40,
+                    child: ElevatedButton(
+                      onPressed: isProcessingDecision
+                          ? null
+                          : () => _showDecisionDialog(
+                              context,
+                              docId: docId,
+                              accept: true,
+                            ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0900FF),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Accept',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SizedBox(
+                    height: 40,
+                    child: ElevatedButton(
+                      onPressed: isProcessingDecision
+                          ? null
+                          : () => _showDecisionDialog(
+                              context,
+                              docId: docId,
+                              accept: false,
+                            ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Reject',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -405,8 +660,7 @@ class _HistoryPageState extends State<HistoryPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) =>
-              AddReportPage(docId: docId, existingData: data),
+          builder: (context) => AddReportPage(docId: docId, existingData: data),
         ),
       );
     } else if (action == 'delete') {
@@ -419,14 +673,15 @@ class _HistoryPageState extends State<HistoryPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Hapus Laporan',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Hapus Laporan',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: const Text('Yakin ingin menghapus laporan ini?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal',
-                style: TextStyle(color: Colors.black54)),
+            child: const Text('Batal', style: TextStyle(color: Colors.black54)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -439,10 +694,10 @@ class _HistoryPageState extends State<HistoryPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: const Text('Hapus',
-                style: TextStyle(color: Colors.white)),
+            child: const Text('Hapus', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -459,8 +714,7 @@ class _HistoryPageState extends State<HistoryPage> {
       );
     }
     if (imageUrl.toString().startsWith('http')) {
-      return Image.network(imageUrl,
-          width: 85, height: 85, fit: BoxFit.cover);
+      return Image.network(imageUrl, width: 85, height: 85, fit: BoxFit.cover);
     }
     return Image.memory(
       base64Decode(imageUrl),

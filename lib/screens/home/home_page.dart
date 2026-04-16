@@ -132,6 +132,7 @@ class _HomePageState extends State<HomePage> {
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
+                    final reportId = docs[index].id;
                     final data = docs[index].data() as Map<String, dynamic>;
                     final category = (data['category'] ?? 'Kehilangan')
                         .toString()
@@ -141,6 +142,7 @@ class _HomePageState extends State<HomePage> {
                       padding: const EdgeInsets.only(bottom: 16),
                       child: _buildItemCard(
                         context,
+                        reportId: reportId,
                         title: data['title'] ?? 'Tanpa Nama',
                         status: isFoundItem ? 'Ditemukan' : 'Hilang',
                         statusColor: isFoundItem
@@ -168,6 +170,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildItemCard(
     BuildContext context, {
+    required String reportId,
     required String title,
     required String status,
     required Color statusColor,
@@ -314,6 +317,7 @@ class _HomePageState extends State<HomePage> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => DetailPage(
+                                reportId: reportId,
                                 title: title,
                                 imageUrl: imageUrl,
                                 status: status,
