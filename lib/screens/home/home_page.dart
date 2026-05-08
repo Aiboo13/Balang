@@ -151,7 +151,7 @@ class _HomePageState extends State<HomePage> {
                         title: data['title'] ?? 'Tanpa Nama',
                         status: isFoundItem ? 'Ditemukan' : 'Hilang',
                         statusColor: isFoundItem
-                            ? Colors.greenAccent
+                            ? Colors.redAccent
                             : Colors.redAccent,
                         description: data['description'] ?? '',
                         date: data['date'] ?? '',
@@ -206,15 +206,18 @@ class _HomePageState extends State<HomePage> {
         children: [
           // Judul + Badge Status
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,

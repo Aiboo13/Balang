@@ -65,18 +65,14 @@ class _SplashPageState extends State<SplashPage> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background biru (Tetap sesuai desainmu)
+          // Background putih
           Container(
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF104A7C), Color(0xFF211D9B)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
+              color: Colors.white,
             ),
           ),
 
-          // Shape putih atas kanan (Tetap abu-abu 200)
+          // Shape biru atas kanan
           Positioned(
             top: 0,
             right: 0,
@@ -85,12 +81,12 @@ class _SplashPageState extends State<SplashPage> {
               child: Container(
                 width: 150,
                 height: 150,
-                color: Colors.grey[200],
+                color: const Color(0xFF104A7C),
               ),
             ),
           ),
 
-          // Shape putih bawah kiri (Tetap abu-abu 200)
+          // Shape biru bawah kiri
           Positioned(
             bottom: 0,
             left: 0,
@@ -99,7 +95,7 @@ class _SplashPageState extends State<SplashPage> {
               child: Container(
                 width: 150,
                 height: 150,
-                color: Colors.grey[200],
+                color: const Color(0xFF104A7C),
               ),
             ),
           ),
@@ -116,24 +112,14 @@ class _SplashPageState extends State<SplashPage> {
                   // Jika logo belum muncul, pastikan sudah daftar di pubspec.yaml
                 ),
                 const SizedBox(height: 12),
-
-                const Text(
-                  'BALANG',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 4,
-                  ),
-                ),
                 const SizedBox(height: 20),
 
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 30),
                   child: Text(
-                    "Find what you've lost, return what you found.",
+                    "Temukan apa yang hilang, kembalikan apa yang Anda temukan.",
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 14),
+                    style: TextStyle(color: Color(0xFF104A7C), fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                 ),
               ],

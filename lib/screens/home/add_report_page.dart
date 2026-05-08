@@ -123,10 +123,10 @@ class _AddReportPageState extends State<AddReportPage> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _pickImage({required ImageSource source}) async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       imageQuality: 50,
     );
 
@@ -138,8 +138,99 @@ class _AddReportPageState extends State<AddReportPage> {
     }
   }
 
+  void _showImageSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Pilih Sumber Gambar',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSourceOption(
+                      icon: Icons.camera_alt,
+                      label: 'Kamera',
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _pickImage(source: ImageSource.camera);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildSourceOption(
+                      icon: Icons.photo_library,
+                      label: 'Galeri',
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _pickImage(source: ImageSource.gallery);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSourceOption({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF104A7C).withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF104A7C).withOpacity(0.2)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 36, color: const Color(0xFF104A7C)),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF104A7C),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _saveReport() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Validasi foto wajib diisi
+    if (_base64Image == null || _base64Image!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Foto barang wajib diisi')),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -235,7 +326,7 @@ class _AddReportPageState extends State<AddReportPage> {
                   children: [
                     // --- Picker Gambar ---
                     GestureDetector(
-                      onTap: _pickImage,
+                      onTap: _showImageSourceSheet,
                       child: Container(
                         height: 200,
                         width: double.infinity,
@@ -260,10 +351,20 @@ class _AddReportPageState extends State<AddReportPage> {
                                     size: 50,
                                     color: Colors.grey,
                                   ),
+                                  SizedBox(height: 8),
                                   Text(
                                     'Ketuk untuk pilih gambar',
-                                    style: TextStyle(color: Colors.grey),
+                                    style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
                                   ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Kamera atau Galeri',
+                                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Untuk mengambil foto, tunggu beberapa saat setelah menekan tombol shutter agar proses pengolahan foto selesai.',
+                                    style: TextStyle(color: Colors.grey, fontSize: 12),)
                                 ],
                               ),
                       ),
@@ -273,11 +374,18 @@ class _AddReportPageState extends State<AddReportPage> {
                     // --- Input Judul ---
                     TextFormField(
                       controller: _titleController,
+                      maxLength: 50,
                       decoration: const InputDecoration(
                         labelText: 'Nama Barang',
                         border: OutlineInputBorder(),
+                        counterText: '',
                       ),
-                      validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Wajib diisi';
+                        if (v.trim().length < 3) return 'Minimal 3 karakter';
+                        if (v.trim().length > 50) return 'Maksimal 50 karakter';
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 15),
 
@@ -300,11 +408,18 @@ class _AddReportPageState extends State<AddReportPage> {
                     // --- Lokasi & Tanggal ---
                     TextFormField(
                       controller: _locationController,
+                      maxLength: 100,
                       decoration: const InputDecoration(
                         labelText: 'Lokasi Kejadian',
                         prefixIcon: Icon(Icons.location_on),
+                        counterText: '',
                       ),
-                      validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Wajib diisi';
+                        if (v.trim().length < 5) return 'Minimal 5 karakter';
+                        if (v.trim().length > 100) return 'Maksimal 100 karakter';
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 15),
                     TextFormField(
@@ -334,11 +449,17 @@ class _AddReportPageState extends State<AddReportPage> {
                     TextFormField(
                       controller: _descController,
                       maxLines: 4,
+                      maxLength: 500,
                       decoration: const InputDecoration(
                         labelText: 'Deskripsi Detail',
                         border: OutlineInputBorder(),
+                        counterStyle: TextStyle(fontSize: 11, color: Colors.grey),
                       ),
-                      validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Wajib diisi';
+                        if (v.trim().length > 500) return 'Maksimal 500 karakter';
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 30),
 

@@ -397,7 +397,7 @@ class _HistoryPageState extends State<HistoryPage> {
     final imageUrl = data['imageUrl'];
 
     // Warna badge Hilang/Ditemukan
-    final categoryColor = isHilang ? Colors.redAccent : Colors.green;
+    final categoryColor = isHilang ? Colors.redAccent : Colors.redAccent;
 
     // Warna badge status laporan
     Color statusColor;
