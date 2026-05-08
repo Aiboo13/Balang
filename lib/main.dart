@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart'; // Tambahin ini
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 
 // --- IMPORT SEMUA SCREEN ---
-// Pastikan path ini sesuai dengan folder di proyek Balang kamu
 import 'screens/splash/splash_page.dart'; 
 import 'screens/auth/login_page.dart';
 import 'screens/auth/register_page.dart';
@@ -15,12 +15,38 @@ import 'screens/profile/profile_page.dart';
 import 'screens/home/notification_page.dart'; 
 import 'screens/home/add_report_page.dart';
 
+// Fungsi buat nanganin notif pas app di background / mati
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print("Notif masuk pas lagi off: ${message.notification?.title}");
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Inisialisasi Firebase Messaging
+  FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+  // Minta izin notif ke user
+  NotificationSettings settings = await messaging.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+
+  print('Izin diberikan: ${settings.authorizationStatus}');
+
+  // Set handler buat background
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Ambil token buat ngetes (liat di Debug Console)
+  String? token = await messaging.getToken();
+  print("TOKEN HP LO (Pake buat ngetes di Firebase Console): $token");
+
   runApp(const BalangApp());
 }
 
@@ -38,7 +64,6 @@ class BalangApp extends StatelessWidget {
         fontFamily: 'Poppins',
         useMaterial3: true,
       ),
-      // Alur pertama dimulai dari Splash Screen
       home: const SplashPage(), 
     );
   }
@@ -52,13 +77,19 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
-  int _currentIndex = 1; // Default ke halaman Beranda
+  int _currentIndex = 1;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _updateActivityTime();
+
+    // Dengerin notif pas aplikasi lagi kebuka (Foreground)
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Dapet notif pas app kebuka: ${message.notification?.title}');
+      // Di sini lo bisa tambahin snackbar atau popup kalau mau
+    });
   }
 
   @override
@@ -75,18 +106,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state == AppLifecycleState.paused) {
-      // Aplikasi ditutup sementara / diminimize
       await _updateActivityTime();
     } else if (state == AppLifecycleState.resumed) {
-      // Aplikasi dibuka kembali
       SharedPreferences prefs = await SharedPreferences.getInstance();
       int? lastActive = prefs.getInt('last_active_time');
       int now = DateTime.now().millisecondsSinceEpoch;
       
-      const int timeout = 10 * 60 * 1000; // 10 menit
+      const int timeout = 10 * 60 * 1000; 
       
       if (lastActive != null && (now - lastActive) > timeout) {
-        // Waktu habis, logout dan paksa ke login
         await FirebaseAuth.instance.signOut();
         await prefs.remove('last_active_time');
         if (mounted) {
@@ -97,7 +125,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           );
         }
       } else {
-        // Masih aman, update waktu aktif
         await _updateActivityTime();
       }
     }
@@ -109,7 +136,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     const ProfilePage(),
   ];
 
-  // FUNGSI MENU TAMBAH
   void _showActionMenu() {
     Navigator.push(
       context,
@@ -151,7 +177,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             child: const Icon(Icons.add, color: Colors.white, size: 30),
           ) 
         : null,
-
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
