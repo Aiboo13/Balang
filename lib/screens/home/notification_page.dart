@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -82,7 +82,7 @@ class NotificationPage extends StatelessWidget {
                   bottom: 20,
                 ),
                 decoration: const BoxDecoration(
-                  color: Color(0xFF0900FF),
+                  color: Color(0xFF104A7C),
                   borderRadius: BorderRadius.only(
                     bottomRight: Radius.circular(30), // Lengkungan khas Balang
                   ),
@@ -199,7 +199,7 @@ class NotificationPage extends StatelessWidget {
             const Text(
               'Lihat detail barang →',
               style: TextStyle(
-                color: Color(0xFF0900FF),
+                color: Color(0xFF104A7C),
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
               ),

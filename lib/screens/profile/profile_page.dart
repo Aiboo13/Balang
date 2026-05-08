@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -183,7 +183,7 @@ class _ProfilePageState extends State<ProfilePage> {
               width: double.infinity,
               height: 350,
               decoration: const BoxDecoration(
-                color: Color(0xFF0900FF),
+                color: Color(0xFF104A7C),
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(40),
                   bottomRight: Radius.circular(40),
@@ -207,7 +207,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: Icon(
                       Icons.person,
                       size: 80,
-                      color: Color(0xFF0900FF),
+                      color: Color(0xFF104A7C),
                     ),
                   ),
                   const SizedBox(height: 15),

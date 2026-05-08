@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -69,7 +69,7 @@ class _SplashPageState extends State<SplashPage> {
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF0900FF), Color(0xFF211D9B)],
+                colors: [Color(0xFF104A7C), Color(0xFF211D9B)],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -112,8 +112,19 @@ class _SplashPageState extends State<SplashPage> {
                 // Logo (Tetap sesuai asset kamu)
                 Image.asset(
                   'assets/logo.png', 
-                  width: 120,
+                  width: 180,
                   // Jika logo belum muncul, pastikan sudah daftar di pubspec.yaml
+                ),
+                const SizedBox(height: 12),
+
+                const Text(
+                  'BALANG',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 4,
+                  ),
                 ),
                 const SizedBox(height: 20),
 

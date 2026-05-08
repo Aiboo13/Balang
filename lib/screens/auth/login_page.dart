@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../main.dart';
 import 'register_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -84,7 +84,7 @@ class _LoginPageState extends State<LoginPage> {
               width: 180,
               height: 180,
               decoration: const BoxDecoration(
-                color: Color(0xFF0900FF),
+                color: Color(0xFF104A7C),
                 shape: BoxShape.circle,
               ),
             ),
@@ -98,7 +98,7 @@ class _LoginPageState extends State<LoginPage> {
               width: 200,
               height: 200,
               decoration: const BoxDecoration(
-                color: Color(0xFF0900FF),
+                color: Color(0xFF104A7C),
                 shape: BoxShape.circle,
               ),
             ),
@@ -122,7 +122,7 @@ class _LoginPageState extends State<LoginPage> {
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF0900FF),
+                          color: Color(0xFF104A7C),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -173,7 +173,7 @@ class _LoginPageState extends State<LoginPage> {
                         height: 55,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0900FF),
+                            backgroundColor: const Color(0xFF104A7C),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),

@@ -32,8 +32,9 @@ class BalangApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Balang',
+
       theme: ThemeData(
-        primaryColor: const Color(0xFF0900FF),
+        primaryColor: const Color(0xFF104A7C),
         fontFamily: 'Poppins',
         useMaterial3: true,
       ),
@@ -119,15 +120,32 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 250),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        transitionBuilder: (child, animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.04, 0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+          );
+        },
+        child: KeyedSubtree(
+          key: ValueKey<int>(_currentIndex),
+          child: _pages[_currentIndex],
+        ),
       ),
-      
+
       // Tombol "+" yang memunculkan menu pilihan
       floatingActionButton: _currentIndex == 1 
         ? FloatingActionButton(
-            backgroundColor: const Color(0xFF0900FF),
+            backgroundColor: const Color(0xFF104A7C),
             shape: const CircleBorder(),
             onPressed: _showActionMenu, 
             child: const Icon(Icons.add, color: Colors.white, size: 30),
@@ -150,7 +168,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               _currentIndex = index;
             });
           },
-          selectedItemColor: const Color(0xFF0900FF),
+          selectedItemColor: const Color(0xFF104A7C),
           unselectedItemColor: Colors.grey,
           type: BottomNavigationBarType.fixed,
           items: const [

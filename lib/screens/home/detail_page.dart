@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -337,7 +337,7 @@ class _DetailPageState extends State<DetailPage> {
                             await _submitClaimRequest();
                           },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0900FF),
+                      backgroundColor: const Color(0xFF104A7C),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -415,7 +415,7 @@ class _DetailPageState extends State<DetailPage> {
                           },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: accept
-                          ? const Color(0xFF0900FF)
+                          ? const Color(0xFF104A7C)
                           : Colors.redAccent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -443,12 +443,12 @@ class _DetailPageState extends State<DetailPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF0900FF)),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF104A7C)),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Kembali',
-          style: TextStyle(color: Color(0xFF0900FF), fontSize: 16),
+          style: TextStyle(color: Color(0xFF104A7C), fontSize: 16),
         ),
       ),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -634,7 +634,7 @@ class _DetailPageState extends State<DetailPage> {
                   const SizedBox(height: 15),
                   Row(
                     children: const [
-                      Icon(Icons.person_outline, color: Color(0xFF0900FF)),
+                      Icon(Icons.person_outline, color: Color(0xFF104A7C)),
                       SizedBox(width: 10),
                       Text(
                         'Dilaporkan Oleh',
@@ -658,7 +658,7 @@ class _DetailPageState extends State<DetailPage> {
                     children: [
                       const Icon(
                         Icons.phone_outlined,
-                        color: Color(0xFF0900FF),
+                        color: Color(0xFF104A7C),
                         size: 18,
                       ),
                       const SizedBox(width: 8),
@@ -681,7 +681,7 @@ class _DetailPageState extends State<DetailPage> {
                     children: const [
                       Icon(
                         Icons.verified_user_outlined,
-                        color: Color(0xFF0900FF),
+                        color: Color(0xFF104A7C),
                       ),
                       SizedBox(width: 10),
                       Text(
@@ -706,7 +706,7 @@ class _DetailPageState extends State<DetailPage> {
                     children: [
                       const Icon(
                         Icons.phone_outlined,
-                        color: Color(0xFF0900FF),
+                        color: Color(0xFF104A7C),
                         size: 18,
                       ),
                       const SizedBox(width: 8),
@@ -738,7 +738,7 @@ class _DetailPageState extends State<DetailPage> {
                                     accept: true,
                                   ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0900FF),
+                              backgroundColor: const Color(0xFF104A7C),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -811,7 +811,7 @@ class _DetailPageState extends State<DetailPage> {
                           ? null
                           : () => _showClaimDialog(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0900FF),
+                        backgroundColor: const Color(0xFF104A7C),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -859,7 +859,7 @@ class _DetailPageState extends State<DetailPage> {
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFF0900FF), size: 22),
+        Icon(icon, color: const Color(0xFF104A7C), size: 22),
         const SizedBox(width: 15),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,

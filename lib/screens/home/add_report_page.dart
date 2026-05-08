@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -222,13 +222,13 @@ class _AddReportPageState extends State<AddReportPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(isEdit ? 'Edit Laporan' : 'Tambah Laporan'),
-        backgroundColor: const Color(0xFF0900FF),
+        backgroundColor: const Color(0xFF104A7C),
         foregroundColor: Colors.white,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(context).padding.bottom),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -349,7 +349,7 @@ class _AddReportPageState extends State<AddReportPage> {
                       child: ElevatedButton(
                         onPressed: _saveReport,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0900FF),
+                          backgroundColor: const Color(0xFF104A7C),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),

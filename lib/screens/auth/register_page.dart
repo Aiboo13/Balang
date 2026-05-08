@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'login_page.dart'; // Import ke halaman login
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -100,7 +100,7 @@ class _RegisterPageState extends State<RegisterPage> {
               width: 180,
               height: 180,
               decoration: const BoxDecoration(
-                color: Color(0xFF0900FF),
+                color: Color(0xFF104A7C),
                 shape: BoxShape.circle,
               ),
             ),
@@ -113,9 +113,9 @@ class _RegisterPageState extends State<RegisterPage> {
               width: 200,
               height: 200,
               decoration: const BoxDecoration(
-                color: Color(0xFF0900FF),
+                color: Color(0xFF104A7C),
                 shape: BoxShape.circle,
-              ),
+            ),
             ),
           ),
 
@@ -137,7 +137,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF0900FF),
+                            color: Color(0xFF104A7C),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -219,7 +219,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           height: 55,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0900FF),
+                              backgroundColor: const Color(0xFF104A7C),
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(

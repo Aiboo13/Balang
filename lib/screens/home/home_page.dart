@@ -1,9 +1,10 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../home/notification_page.dart';
 import '../home/detail_page.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -50,7 +51,7 @@ class _HomePageState extends State<HomePage> {
               bottom: 30,
             ),
             decoration: const BoxDecoration(
-              color: Color(0xFF0900FF),
+              color: Color(0xFF104A7C),
               borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(30),
                 bottomRight: Radius.circular(30),
@@ -120,7 +121,11 @@ class _HomePageState extends State<HomePage> {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                    itemCount: 4,
+                    itemBuilder: (_, __) => const HomeCardSkeleton(),
+                  );
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(child: Text("Belum ada laporan."));
@@ -340,7 +345,7 @@ class _HomePageState extends State<HomePage> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0900FF),
+                            color: const Color(0xFF104A7C),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Text(

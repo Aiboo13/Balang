@@ -1,8 +1,9 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../home/add_report_page.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -102,7 +103,7 @@ class _HistoryPageState extends State<HistoryPage> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: accept
-                  ? const Color(0xFF0900FF)
+                  ? const Color(0xFF104A7C)
                   : Colors.redAccent,
             ),
             child: Text(
@@ -128,7 +129,18 @@ class _HistoryPageState extends State<HistoryPage> {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Column(
+              children: [
+                _buildHeader(0, 0, 0, 0),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                    itemCount: 4,
+                    itemBuilder: (_, __) => const HistoryCardSkeleton(),
+                  ),
+                ),
+              ],
+            );
           }
 
           if (snapshot.hasError) {
@@ -198,7 +210,7 @@ class _HistoryPageState extends State<HistoryPage> {
       width: double.infinity,
       padding: const EdgeInsets.only(top: 60, left: 24, right: 24, bottom: 20),
       decoration: const BoxDecoration(
-        color: Color(0xFF0900FF),
+        color: Color(0xFF104A7C),
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(30),
           bottomRight: Radius.circular(30),
@@ -306,7 +318,7 @@ class _HistoryPageState extends State<HistoryPage> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF3333CC) : Colors.transparent,
+            color: isActive ? const Color(0xFF104A7C) : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Center(
@@ -334,13 +346,13 @@ class _HistoryPageState extends State<HistoryPage> {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: const Color(0xFF0900FF).withOpacity(0.08),
+                color: const Color(0xFF104A7C).withOpacity(0.08),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.inventory_2_outlined,
                 size: 50,
-                color: Color(0xFF0900FF),
+                color: Color(0xFF104A7C),
               ),
             ),
             const SizedBox(height: 20),
@@ -556,7 +568,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 const Icon(
                   Icons.person_outline,
                   size: 14,
-                  color: Color(0xFF0900FF),
+                  color: Color(0xFF104A7C),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
@@ -576,7 +588,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 const Icon(
                   Icons.phone_outlined,
                   size: 13,
-                  color: Color(0xFF0900FF),
+                  color: Color(0xFF104A7C),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
@@ -605,7 +617,7 @@ class _HistoryPageState extends State<HistoryPage> {
                               accept: true,
                             ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0900FF),
+                        backgroundColor: const Color(0xFF104A7C),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -729,7 +741,7 @@ class _HistoryPageState extends State<HistoryPage> {
       padding: const EdgeInsets.only(bottom: 3),
       child: Row(
         children: [
-          Icon(icon, size: 12, color: const Color(0xFF0900FF)),
+          Icon(icon, size: 12, color: const Color(0xFF104A7C)),
           const SizedBox(width: 4),
           Expanded(
             child: Text(
