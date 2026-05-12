@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart'; // Tambahin ini
@@ -6,13 +7,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 
 // --- IMPORT SEMUA SCREEN ---
-import 'screens/splash/splash_page.dart'; 
+import 'screens/splash/splash_page.dart';
 import 'screens/auth/login_page.dart';
 import 'screens/auth/register_page.dart';
 import 'screens/home/home_page.dart';
 import 'screens/history/history_page.dart';
 import 'screens/profile/profile_page.dart';
-import 'screens/home/notification_page.dart'; 
+import 'screens/home/notification_page.dart';
 import 'screens/home/add_report_page.dart';
 
 // Fungsi buat nanganin notif pas app di background / mati
@@ -24,28 +25,28 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Inisialisasi Firebase Messaging
-  FirebaseMessaging messaging = FirebaseMessaging.instance;
+  // Inisialisasi Firebase Messaging HANYA untuk Android/iOS (bukan Web)
+  if (!kIsWeb) {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
 
-  // Minta izin notif ke user
-  NotificationSettings settings = await messaging.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
+    // Minta izin notif ke user
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
 
-  print('Izin diberikan: ${settings.authorizationStatus}');
+    print('Izin diberikan: ${settings.authorizationStatus}');
 
-  // Set handler buat background
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    // Set handler buat background
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Ambil token buat ngetes (liat di Debug Console)
-  String? token = await messaging.getToken();
-  print("TOKEN HP LO (Pake buat ngetes di Firebase Console): $token");
+    // Ambil token buat ngetes (liat di Debug Console)
+    String? token = await messaging.getToken();
+    print("TOKEN HP LO (Pake buat ngetes di Firebase Console): $token");
+  }
 
   runApp(const BalangApp());
 }
@@ -64,7 +65,7 @@ class BalangApp extends StatelessWidget {
         fontFamily: 'Poppins',
         useMaterial3: true,
       ),
-      home: const SplashPage(), 
+      home: const SplashPage(),
     );
   }
 }
@@ -85,11 +86,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _updateActivityTime();
 
-    // Dengerin notif pas aplikasi lagi kebuka (Foreground)
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Dapet notif pas app kebuka: ${message.notification?.title}');
-      // Di sini lo bisa tambahin snackbar atau popup kalau mau
-    });
+    // Dengerin notif pas aplikasi lagi kebuka (Foreground) - HANYA untuk Android/iOS
+    if (!kIsWeb) {
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print('Dapet notif pas app kebuka: ${message.notification?.title}');
+        // Di sini lo bisa tambahin snackbar atau popup kalau mau
+      });
+    }
   }
 
   @override
@@ -100,7 +103,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   Future<void> _updateActivityTime() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('last_active_time', DateTime.now().millisecondsSinceEpoch);
+    await prefs.setInt(
+      'last_active_time',
+      DateTime.now().millisecondsSinceEpoch,
+    );
   }
 
   @override
@@ -111,9 +117,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       int? lastActive = prefs.getInt('last_active_time');
       int now = DateTime.now().millisecondsSinceEpoch;
-      
-      const int timeout = 10 * 60 * 1000; 
-      
+
+      const int timeout = 10 * 60 * 1000;
+
       if (lastActive != null && (now - lastActive) > timeout) {
         await FirebaseAuth.instance.signOut();
         await prefs.remove('last_active_time');
@@ -169,21 +175,18 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       ),
 
       // Tombol "+" yang memunculkan menu pilihan
-      floatingActionButton: _currentIndex == 1 
-        ? FloatingActionButton(
-            backgroundColor: const Color(0xFF104A7C),
-            shape: const CircleBorder(),
-            onPressed: _showActionMenu, 
-            child: const Icon(Icons.add, color: Colors.white, size: 30),
-          ) 
-        : null,
+      floatingActionButton: _currentIndex == 1
+          ? FloatingActionButton(
+              backgroundColor: const Color(0xFF104A7C),
+              shape: const CircleBorder(),
+              onPressed: _showActionMenu,
+              child: const Icon(Icons.add, color: Colors.white, size: 30),
+            )
+          : null,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-            ),
+            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10),
           ],
         ),
         child: BottomNavigationBar(
@@ -197,7 +200,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           unselectedItemColor: Colors.grey,
           type: BottomNavigationBarType.fixed,
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.history),
+              label: 'History',
+            ),
             BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
             BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
           ],

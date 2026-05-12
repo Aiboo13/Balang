@@ -1,10 +1,11 @@
 ﻿import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io' show File;
 
 class AddReportPage extends StatefulWidget {
   final String? docId; // ID dokumen jika mode edit
@@ -124,11 +125,17 @@ class _AddReportPageState extends State<AddReportPage> {
   }
 
   Future<void> _pickImage({required ImageSource source}) async {
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Fitur upload gambar belum tersedia di web'),
+        ),
+      );
+      return;
+    }
+
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
-      source: source,
-      imageQuality: 50,
-    );
+    final pickedFile = await picker.pickImage(source: source, imageQuality: 50);
 
     if (pickedFile != null) {
       final bytes = await File(pickedFile.path).readAsBytes();
@@ -226,9 +233,9 @@ class _AddReportPageState extends State<AddReportPage> {
 
     // Validasi foto wajib diisi
     if (_base64Image == null || _base64Image!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Foto barang wajib diisi')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Foto barang wajib diisi')));
       return;
     }
 
@@ -319,7 +326,12 @@ class _AddReportPageState extends State<AddReportPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(context).padding.bottom),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                20,
+                20,
+                20 + MediaQuery.of(context).padding.bottom,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -354,17 +366,27 @@ class _AddReportPageState extends State<AddReportPage> {
                                   SizedBox(height: 8),
                                   Text(
                                     'Ketuk untuk pilih gambar',
-                                    style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                   SizedBox(height: 4),
                                   Text(
                                     'Kamera atau Galeri',
-                                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                   SizedBox(height: 4),
                                   Text(
                                     'Untuk mengambil foto, tunggu beberapa saat setelah menekan tombol shutter agar proses pengolahan foto selesai.',
-                                    style: TextStyle(color: Colors.grey, fontSize: 12),)
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                  ),
                                 ],
                               ),
                       ),
@@ -417,7 +439,8 @@ class _AddReportPageState extends State<AddReportPage> {
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Wajib diisi';
                         if (v.trim().length < 5) return 'Minimal 5 karakter';
-                        if (v.trim().length > 100) return 'Maksimal 100 karakter';
+                        if (v.trim().length > 100)
+                          return 'Maksimal 100 karakter';
                         return null;
                       },
                     ),
@@ -453,11 +476,15 @@ class _AddReportPageState extends State<AddReportPage> {
                       decoration: const InputDecoration(
                         labelText: 'Deskripsi Detail',
                         border: OutlineInputBorder(),
-                        counterStyle: TextStyle(fontSize: 11, color: Colors.grey),
+                        counterStyle: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                        ),
                       ),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Wajib diisi';
-                        if (v.trim().length > 500) return 'Maksimal 500 karakter';
+                        if (v.trim().length > 500)
+                          return 'Maksimal 500 karakter';
                         return null;
                       },
                     ),
