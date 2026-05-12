@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'login_page.dart'; // Import ke halaman login
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,26 +12,36 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _whatsappController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
+  final TextEditingController _codeController = TextEditingController();
+
   bool _isLoading = false;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
+  bool _isCodeSent = false;
   String? _errorMessage;
 
+  final Color primaryColor = const Color(0xFF1B527E);
+
   void _register() async {
-    final name = _nameController.text.trim();
     final email = _emailController.text.trim();
+    final whatsapp = _whatsappController.text.trim();
     final password = _passwordController.text;
     final confirm = _confirmController.text;
+    final code = _codeController.text.trim();
 
     setState(() {
       _errorMessage = null;
     });
 
-    if (name.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty) {
+    if (email.isEmpty ||
+        whatsapp.isEmpty ||
+        password.isEmpty ||
+        confirm.isEmpty ||
+        code.isEmpty) {
       setState(() => _errorMessage = 'Semua field wajib diisi');
       return;
     }
@@ -43,22 +53,23 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() => _errorMessage = 'Password tidak sama');
       return;
     }
+    
     setState(() => _isLoading = true);
     try {
       final credential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
-      await credential.user?.updateDisplayName(name);
+      
       await FirebaseFirestore.instance
           .collection('users')
           .doc(credential.user!.uid)
           .set({
-            'name': name,
-            'email': email,
-            'whatsApp': '-',
-            'updatedAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
+        'email': email,
+        'whatsApp': whatsapp,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      
       await FirebaseAuth.instance.signOut();
-      // Sukses, kembali ke login
+      
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -68,212 +79,228 @@ class _RegisterPageState extends State<RegisterPage> {
     } on FirebaseAuthException catch (e) {
       String message = 'Terjadi kesalahan saat register';
       if (e.code == 'weak-password') {
-        message = 'Password terlalu panjang atau lemah';
+        message = 'Password terlalu lemah';
       } else if (e.code == 'email-already-in-use') {
         message = 'Email sudah terdaftar';
-      } else if (e.code == 'invalid-email') {
-        message = 'Format email tidak valid';
       } else if (e.message != null) {
         message = e.message!;
       }
-
       setState(() => _errorMessage = message);
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
+  void _sendCode() {
+    setState(() {
+      _isCodeSent = true;
+    });
+    // logic to send code
+  }
+
   @override
   Widget build(BuildContext context) {
-    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
-
     return Scaffold(
-      resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // 1. Dekorasi Lingkaran Biru (Identik dengan Login)
+          // Dekorasi Atas
           Positioned(
-            right: -50,
-            top: -50,
+            right: -60,
+            top: 70,
             child: Container(
               width: 180,
-              height: 180,
-              decoration: const BoxDecoration(
-                color: Color(0xFF104A7C),
-                shape: BoxShape.circle,
+              height: 220,
+              decoration: BoxDecoration(
+                color: primaryColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(100),
+                  bottomLeft: Radius.circular(100),
+                ),
               ),
             ),
           ),
 
+          // Dekorasi Bawah
           Positioned(
-            left: -80,
-            bottom: -80,
+            left: -30,
+            bottom: -30,
             child: Container(
-              width: 200,
-              height: 200,
-              decoration: const BoxDecoration(
-                color: Color(0xFF104A7C),
-                shape: BoxShape.circle,
-            ),
+              width: 160,
+              height: 160,
+              decoration: BoxDecoration(
+                color: primaryColor,
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(100),
+                ),
+              ),
             ),
           ),
 
-          // 2. Konten Register
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(24, 0, 24, keyboardInset),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 480),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 80),
-                        const Text(
-                          'REGISTER',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF104A7C),
+                padding: const EdgeInsets.symmetric(horizontal: 35),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 40),
+                    Text(
+                      'DAFTAR',
+                      style: TextStyle(
+                        fontSize: 38,
+                        fontWeight: FontWeight.w900,
+                        color: primaryColor,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      "Mulai cari barangmu di\nsini",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF4A4A4A),
+                      ),
+                    ),
+                    const SizedBox(height: 50),
+
+                    _buildInputField(
+                      hintText: 'Email',
+                      isPassword: false,
+                      controller: _emailController,
+                    ),
+                    const SizedBox(height: 18),
+
+                    _buildInputField(
+                      hintText: 'No. Whastapp',
+                      isPassword: false,
+                      controller: _whatsappController,
+                    ),
+                    const SizedBox(height: 18),
+
+                    _buildInputField(
+                      hintText: 'Kata Sandi (Minimal 6 karakter)',
+                      isPassword: true,
+                      controller: _passwordController,
+                      isVisible: _isPasswordVisible,
+                      onToggle: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                    ),
+                    const SizedBox(height: 18),
+
+                    _buildInputField(
+                      hintText: 'Konfirmasi Kata Sandi',
+                      isPassword: true,
+                      controller: _confirmController,
+                      isVisible: _isConfirmPasswordVisible,
+                      onToggle: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+                    ),
+                    const SizedBox(height: 18),
+
+                    _buildInputField(
+                      hintText: 'Masukan Kode',
+                      isPassword: false,
+                      controller: _codeController,
+                      suffix: GestureDetector(
+                        onTap: _sendCode,
+                        child: Container(
+                          margin: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[400],
+                            borderRadius: BorderRadius.circular(15),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          "Join us and start finding\nlost items",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-
-                        // --- INPUT FIELDS (Ukuran & Style Sama dengan Login) ---
-                        _buildInputField(
-                          label: 'Full Name',
-                          hintText: 'Nama Lengkap',
-                          isPassword: false,
-                          controller: _nameController,
-                        ),
-                        const SizedBox(height: 20),
-
-                        _buildInputField(
-                          label: 'Email',
-                          hintText: 'Email Address',
-                          isPassword: false,
-                          controller: _emailController,
-                        ),
-                        const SizedBox(height: 20),
-
-                        _buildInputField(
-                          label: 'Password',
-                          hintText: 'Password',
-                          isPassword: true,
-                          controller: _passwordController,
-                          isPasswordVisible: _isPasswordVisible,
-                          onTogglePasswordVisibility: () {
-                            setState(() {
-                              _isPasswordVisible = !_isPasswordVisible;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 20),
-
-                        _buildInputField(
-                          label: 'Confirm Password',
-                          hintText: 'Confirm Password',
-                          isPassword: true,
-                          controller: _confirmController,
-                          isPasswordVisible: _isConfirmPasswordVisible,
-                          onTogglePasswordVisibility: () {
-                            setState(() {
-                              _isConfirmPasswordVisible =
-                                  !_isConfirmPasswordVisible;
-                            });
-                          },
-                        ),
-
-                        if (_errorMessage != null) ...[
-                          const SizedBox(height: 16),
-                          Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
+                          child: const Text(
+                            'Kirim Kode',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                        ] else ...[
-                          const SizedBox(height: 40),
-                        ],
-
-                        // --- TOMBOL REGISTER ---
-                        SizedBox(
-                          width: double.infinity,
-                          height: 55,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF104A7C),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: _isLoading ? null : _register,
-                            child: _isLoading
-                                ? const CircularProgressIndicator(
-                                    color: Colors.white,
-                                  )
-                                : const Text(
-                                    'REGISTER',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
                           ),
                         ),
+                      ),
+                    ),
 
-                        const SizedBox(height: 20),
+                    const SizedBox(height: 30),
 
-                        // --- LINK KEMBALI KE LOGIN ---
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'Already have an account? ',
-                              style: TextStyle(
-                                color: Colors.black54,
-                                fontSize: 14,
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.pop(context);
-                              },
-                              child: const Text(
-                                'Login here',
+                    if (_errorMessage != null) ...[
+                      Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 58,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        onPressed: _isLoading ? null : _register,
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'DAFTAR',
                                 style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 14,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    if (_isCodeSent)
+                      const Text(
+                        'Kode verifikasi Terkirim',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      )
+                    else
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: RichText(
+                          text: TextSpan(
+                            style: const TextStyle(
+                              color: Colors.black87,
+                              fontSize: 14,
+                            ),
+                            children: [
+                              const TextSpan(text: 'Sudah punya akun.? '),
+                              TextSpan(
+                                text: 'Masuk Sekarang',
+                                style: TextStyle(
+                                  color: primaryColor,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 40),
-                      ],
-                    ),
-                  ),
+                      ),
+                    const SizedBox(height: 40),
+                  ],
                 ),
               ),
             ),
@@ -283,53 +310,51 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  // Widget Input Field (Identik dengan Login)
   Widget _buildInputField({
-    required String label,
     required String hintText,
     required bool isPassword,
     TextEditingController? controller,
-    bool isPasswordVisible = false,
-    VoidCallback? onTogglePasswordVisibility,
+    bool? isVisible,
+    VoidCallback? onToggle,
+    Widget? suffix,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 14, color: Colors.black54),
+    return TextField(
+      controller: controller,
+      obscureText: isPassword ? !(isVisible ?? false) : false,
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: const TextStyle(
+          color: Colors.black,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
         ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: TextField(
-            controller: controller,
-            obscureText: isPassword ? !isPasswordVisible : false,
-            decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: const TextStyle(color: Colors.black87, fontSize: 15),
-              suffixIcon: isPassword
-                  ? IconButton(
-                      icon: Icon(
-                        isPasswordVisible
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                      ),
-                      onPressed: onTogglePasswordVisibility,
-                    )
-                  : null,
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-            ),
-          ),
+        filled: true,
+        fillColor: Colors.white,
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  (isVisible ?? false) ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.black,
+                  size: 26,
+                ),
+                onPressed: onToggle,
+              )
+            : suffix,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 22,
         ),
-      ],
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: Colors.black54, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(color: primaryColor, width: 1.5),
+        ),
+      ),
     );
   }
 }
+
