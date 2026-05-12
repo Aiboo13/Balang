@@ -388,7 +388,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         fillColor: Colors.white,
         suffixIcon: IconButton(
           icon: Icon(
-            isVisible ? Icons.visibility_off : Icons.visibility,
+            isVisible ? Icons.visibility : Icons.visibility_off,
             color: Colors.black,
             size: 22,
           ),
