@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../main.dart';
 import 'register_page.dart';
 import 'forgot_password_page.dart';
@@ -138,7 +138,7 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 60),
 
                     _buildInputField(
-                      hintText: 'Email (Harus Jelas)',
+                      hintText: 'contoh: user@gmail.com',
                       isPassword: false,
                       controller: _emailController,
                     ),
@@ -271,8 +271,8 @@ class _LoginPageState extends State<LoginPage> {
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(
-          color: Colors.black87,
-          fontWeight: FontWeight.bold,
+          color: Colors.grey,
+          fontWeight: FontWeight.normal,
           fontSize: 14,
         ),
         filled: true,

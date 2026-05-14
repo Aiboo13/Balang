@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'login_page.dart'; // Import ke halaman login
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -208,7 +208,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     const SizedBox(height: 50),
 
                     _buildInputField(
-                      hintText: 'Email (Harus Jelas)',
+                      hintText: 'contoh: user@gmail.com',
                       isPassword: false,
                       controller: _emailController,
                     ),
@@ -372,8 +372,8 @@ class _RegisterPageState extends State<RegisterPage> {
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(
-          color: Colors.black,
-          fontWeight: FontWeight.bold,
+          color: Colors.grey,
+          fontWeight: FontWeight.normal,
           fontSize: 14,
         ),
         filled: true,
