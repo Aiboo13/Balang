@@ -1,11 +1,10 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:io' show File;
 
 class AddReportPage extends StatefulWidget {
   final String? docId; // ID dokumen jika mode edit
@@ -125,20 +124,11 @@ class _AddReportPageState extends State<AddReportPage> {
   }
 
   Future<void> _pickImage({required ImageSource source}) async {
-    if (kIsWeb) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Fitur upload gambar belum tersedia di web'),
-        ),
-      );
-      return;
-    }
-
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source, imageQuality: 50);
 
     if (pickedFile != null) {
-      final bytes = await File(pickedFile.path).readAsBytes();
+      final bytes = await pickedFile.readAsBytes();
       setState(() {
         _base64Image = base64Encode(bytes);
       });
@@ -350,10 +340,17 @@ class _AddReportPageState extends State<AddReportPage> {
                         child: _base64Image != null
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(15),
-                                child: Image.memory(
-                                  base64Decode(_base64Image!),
-                                  fit: BoxFit.cover,
-                                ),
+                                child: _base64Image!.startsWith('http')
+                                    ? Image.network(
+                                        _base64Image!,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                      )
+                                    : Image.memory(
+                                        base64Decode(_base64Image!),
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                      ),
                               )
                             : const Column(
                                 mainAxisAlignment: MainAxisAlignment.center,

@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'add_report_page.dart';
 
 class DetailPage extends StatefulWidget {
   final String reportId;
@@ -48,6 +50,38 @@ class _DetailPageState extends State<DetailPage> {
   void initState() {
     super.initState();
     _resolveReporterInfo();
+  }
+
+  Future<void> _launchWhatsApp(String phone) async {
+    if (phone == '-' || phone.isEmpty) return;
+
+    // Clean phone number: remove all non-digit characters
+    String cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+
+    // If starts with '0', replace with '62' (Indonesia default)
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '62${cleanPhone.substring(1)}';
+    }
+
+    final Uri whatsappUrl = Uri.parse("https://wa.me/$cleanPhone");
+
+    try {
+      if (await canLaunchUrl(whatsappUrl)) {
+        await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tidak dapat membuka WhatsApp')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 
   String get _reporterNameDisplay {
@@ -451,6 +485,37 @@ class _DetailPageState extends State<DetailPage> {
           'Kembali',
           style: TextStyle(color: Color(0xFF104A7C), fontSize: 16),
         ),
+        actions: [
+          StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection('reports')
+                .doc(widget.reportId)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data!.exists) {
+                final data = snapshot.data!.data()!;
+                final ownerId = data['userId'] ?? '';
+                if (ownerId == FirebaseAuth.instance.currentUser?.uid) {
+                  return IconButton(
+                    icon: const Icon(Icons.edit, color: Color(0xFF104A7C)),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AddReportPage(
+                            docId: widget.reportId,
+                            existingData: data,
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
       ),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance
@@ -688,22 +753,26 @@ class _DetailPageState extends State<DetailPage> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.phone_outlined,
-                        color: Color(0xFF104A7C),
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _reporterWhatsAppDisplay,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
+                  GestureDetector(
+                    onTap: () => _launchWhatsApp(_reporterWhatsAppDisplay),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.phone_outlined,
+                          color: Color(0xFF104A7C),
+                          size: 18,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Text(
+                          _reporterWhatsAppDisplay,
+                          style: const TextStyle(
+                            color: Color(0xFF104A7C),
+                            fontSize: 14,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
 
@@ -736,22 +805,26 @@ class _DetailPageState extends State<DetailPage> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.phone_outlined,
-                        color: Color(0xFF104A7C),
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        claimerWhatsApp,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
+                  GestureDetector(
+                    onTap: () => _launchWhatsApp(claimerWhatsApp),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.phone_outlined,
+                          color: Color(0xFF104A7C),
+                          size: 18,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Text(
+                          claimerWhatsApp,
+                          style: const TextStyle(
+                            color: Color(0xFF104A7C),
+                            fontSize: 14,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
 

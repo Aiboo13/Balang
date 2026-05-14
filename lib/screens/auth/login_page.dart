@@ -32,8 +32,8 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _errorMessage = 'Email dan password wajib diisi');
       return;
     }
-    if (!email.endsWith('@ac.id')) {
-      setState(() => _errorMessage = 'Email harus berakhiran ac.id');
+    if (!email.endsWith('@gmail.com')) {
+      setState(() => _errorMessage = 'Email harus berakhiran @gmail.com');
       return;
     }
     setState(() => _isLoading = true);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 
 import '../auth/login_page.dart';
 
@@ -21,6 +22,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController _whatsAppController = TextEditingController();
 
   String _initialName = '';
+  String _initialEmail = '';
   String _initialWhatsApp = '';
 
   User? get _currentUser => FirebaseAuth.instance.currentUser;
@@ -45,20 +47,35 @@ class _ProfilePageState extends State<ProfilePage> {
       return;
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    final savedWhatsApp = prefs.getString('profile_whatsapp_${user.uid}');
+    // Try to get data from Firestore first
+    String name = user.displayName ?? '';
+    String email = user.email ?? '-';
+    String whatsApp = '-';
 
-    final fallbackName = (user.email ?? '').split('@').first.isNotEmpty
-        ? (user.email ?? '').split('@').first
-        : 'User';
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
 
-    final name = (user.displayName ?? '').trim().isNotEmpty
-        ? user.displayName!.trim()
-        : fallbackName;
-    final email = user.email ?? '-';
-    final whatsApp = (savedWhatsApp ?? user.phoneNumber ?? '').trim().isEmpty
-        ? '-'
-        : (savedWhatsApp ?? user.phoneNumber ?? '').trim();
+      if (doc.exists) {
+        final data = doc.data()!;
+        name = data['name'] ?? name;
+        whatsApp = data['whatsApp'] ?? '-';
+      }
+    } catch (e) {
+      debugPrint('Error loading profile from Firestore: $e');
+    }
+
+    // Fallback to SharedPreferences if Firestore fails or data is missing
+    if (whatsApp == '-') {
+      final prefs = await SharedPreferences.getInstance();
+      whatsApp = prefs.getString('profile_whatsapp_${user.uid}') ?? '-';
+    }
+
+    if (name.isEmpty) {
+      name = email.split('@').first.isNotEmpty ? email.split('@').first : 'User';
+    }
 
     if (!mounted) {
       return;
@@ -69,6 +86,7 @@ class _ProfilePageState extends State<ProfilePage> {
       _emailController.text = email;
       _whatsAppController.text = whatsApp;
       _initialName = name;
+      _initialEmail = email;
       _initialWhatsApp = whatsApp;
     });
   }
@@ -80,12 +98,20 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     final updatedName = _nameController.text.trim();
+    final updatedEmail = _emailController.text.trim();
     final updatedWhatsApp = _whatsAppController.text.trim();
 
     if (updatedName.isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Nama tidak boleh kosong')));
+      return;
+    }
+
+    if (updatedEmail.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Email tidak boleh kosong')));
       return;
     }
 
@@ -96,8 +122,27 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       if (updatedName != (user.displayName ?? '').trim()) {
         await user.updateDisplayName(updatedName);
-        await user.reload();
       }
+
+      if (updatedEmail != user.email) {
+        try {
+          await user.verifyBeforeUpdateEmail(updatedEmail);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Link verifikasi email baru telah dikirim. Silakan cek email Anda.',
+              ),
+            ),
+          );
+        } catch (e) {
+          debugPrint('Error updating email: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal memperbarui email: ${e.toString()}')),
+          );
+        }
+      }
+
+      await user.reload();
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
@@ -107,7 +152,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'name': updatedName,
-        'email': user.email ?? '-',
+        'email': updatedEmail,
         'whatsApp': updatedWhatsApp.isEmpty ? '-' : updatedWhatsApp,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -118,6 +163,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       setState(() {
         _initialName = updatedName;
+        _initialEmail = updatedEmail;
         _initialWhatsApp = updatedWhatsApp.isEmpty ? '-' : updatedWhatsApp;
         isEditing = false;
       });
@@ -146,6 +192,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void _startEditing() {
     setState(() {
       _initialName = _nameController.text;
+      _initialEmail = _emailController.text;
       _initialWhatsApp = _whatsAppController.text;
       isEditing = true;
     });
@@ -154,6 +201,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void _cancelEditing() {
     setState(() {
       _nameController.text = _initialName;
+      _emailController.text = _initialEmail;
       _whatsAppController.text = _initialWhatsApp;
       isEditing = false;
     });
@@ -323,13 +371,16 @@ class _ProfilePageState extends State<ProfilePage> {
                     _buildTextField(
                       label: 'Email',
                       controller: _emailController,
-                      enabled: false,
+                      enabled: isEditing,
+                      keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 15),
                     _buildTextField(
                       label: 'Nomor Whatsapp',
                       controller: _whatsAppController,
                       enabled: isEditing,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
                     const SizedBox(height: 25),
                     if (isEditing)
@@ -404,6 +455,8 @@ class _ProfilePageState extends State<ProfilePage> {
     required TextEditingController controller,
     required bool enabled,
     ValueChanged<String>? onChanged,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -417,6 +470,8 @@ class _ProfilePageState extends State<ProfilePage> {
           controller: controller,
           enabled: enabled,
           onChanged: onChanged,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           decoration: InputDecoration(
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 15,

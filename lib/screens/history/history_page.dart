@@ -1,7 +1,8 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../home/add_report_page.dart';
 import '../../widgets/skeleton_loader.dart';
 
@@ -15,6 +16,36 @@ class HistoryPage extends StatefulWidget {
 class _HistoryPageState extends State<HistoryPage> {
   String _selectedTab = 'Semua';
   final Set<String> _processingDecisionDocIds = <String>{};
+
+  Future<void> _launchWhatsApp(String phone) async {
+    if (phone == '-' || phone.isEmpty) return;
+
+    // Clean phone number
+    String cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '62${cleanPhone.substring(1)}';
+    }
+
+    final Uri whatsappUrl = Uri.parse("https://wa.me/$cleanPhone");
+
+    try {
+      if (await canLaunchUrl(whatsappUrl)) {
+        await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tidak dapat membuka WhatsApp')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
 
   Future<void> _decideClaimFromHistory({
     required String docId,
@@ -583,22 +614,29 @@ class _HistoryPageState extends State<HistoryPage> {
               ],
             ),
             const SizedBox(height: 4),
-            Row(
-              children: [
-                const Icon(
-                  Icons.phone_outlined,
-                  size: 13,
-                  color: Color(0xFF104A7C),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    claimerWhatsAppDisplay,
-                    style: const TextStyle(fontSize: 11, color: Colors.black54),
-                    overflow: TextOverflow.ellipsis,
+            GestureDetector(
+              onTap: () => _launchWhatsApp(claimerWhatsAppDisplay),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.phone_outlined,
+                    size: 13,
+                    color: Color(0xFF104A7C),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      claimerWhatsAppDisplay,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF104A7C),
+                        decoration: TextDecoration.underline,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
           if (isPendingClaim) ...[

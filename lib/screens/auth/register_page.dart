@@ -3,6 +3,7 @@ import 'login_page.dart'; // Import ke halaman login
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -45,8 +46,8 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() => _errorMessage = 'Semua field wajib diisi');
       return;
     }
-    if (!email.endsWith('@ac.id')) {
-      setState(() => _errorMessage = 'Email harus berakhiran ac.id');
+    if (!email.endsWith('@gmail.com')) {
+      setState(() => _errorMessage = 'Email harus berakhiran @gmail.com');
       return;
     }
     if (password != confirm) {
@@ -217,6 +218,8 @@ class _RegisterPageState extends State<RegisterPage> {
                       hintText: 'No. Whastapp',
                       isPassword: false,
                       controller: _whatsappController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
                     const SizedBox(height: 18),
 
@@ -357,10 +360,14 @@ class _RegisterPageState extends State<RegisterPage> {
     bool? isVisible,
     VoidCallback? onToggle,
     Widget? suffix,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       controller: controller,
       obscureText: isPassword ? !(isVisible ?? false) : false,
+      keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         hintText: hintText,
