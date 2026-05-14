@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -42,6 +42,7 @@ class _DetailPageState extends State<DetailPage> {
   bool _isSubmittingDecision = false;
   String _resolvedReporterName = '';
   String _resolvedReporterWhatsApp = '';
+  bool _isDescriptionExpanded = false;
 
   @override
   void initState() {
@@ -605,9 +606,39 @@ class _DetailPageState extends State<DetailPage> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  widget.description,
-                  style: const TextStyle(color: Colors.black87, height: 1.5),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.description,
+                      maxLines: _isDescriptionExpanded ? null : 3,
+                      overflow: _isDescriptionExpanded
+                          ? TextOverflow.visible
+                          : TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.black87, height: 1.5),
+                    ),
+                    if (widget.description.length > 100)
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _isDescriptionExpanded = !_isDescriptionExpanded;
+                          });
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            _isDescriptionExpanded
+                                ? 'Sembunyikan'
+                                : 'Baca Selengkapnya',
+                            style: const TextStyle(
+                              color: Color(0xFF104A7C),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 25),
 

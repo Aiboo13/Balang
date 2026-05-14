@@ -138,7 +138,7 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 60),
 
                     _buildInputField(
-                      hintText: 'Email',
+                      hintText: 'Email (Harus Jelas)',
                       isPassword: false,
                       controller: _emailController,
                     ),

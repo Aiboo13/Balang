@@ -156,12 +156,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           child: Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: const Text(
-              'Email',
+              'Email (Harus Jelas)',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
           ),
         ),
-        _buildTextField(controller: _emailController, hintText: ''),
+        _buildTextField(controller: _emailController, hintText: 'Email (Harus Jelas)'),
         const SizedBox(height: 40),
         _buildButton(text: 'Kirim kode', onPressed: _nextStep),
         const SizedBox(height: 25),

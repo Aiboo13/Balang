@@ -71,9 +71,49 @@ class _RegisterPageState extends State<RegisterPage> {
       await FirebaseAuth.instance.signOut();
       
       if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registrasi berhasil, silakan login')),
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text(
+              'Registrasi Berhasil',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
+            ),
+            content: const Text(
+              'Akun Anda telah berhasil dibuat. Silakan login untuk melanjutkan.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.black87),
+            ),
+            actions: [
+              Center(
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginPage()),
+                        (route) => false,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ),
+            ],
+            actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          ),
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -167,7 +207,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     const SizedBox(height: 50),
 
                     _buildInputField(
-                      hintText: 'Email',
+                      hintText: 'Email (Harus Jelas)',
                       isPassword: false,
                       controller: _emailController,
                     ),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -160,15 +160,68 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _logout() async {
-    await FirebaseAuth.instance.signOut();
-    if (!mounted) {
-      return;
-    }
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-      (route) => false,
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Konfirmasi Keluar',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Color(0xFF104A7C), fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Apakah Anda yakin ingin keluar dari akun?',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.black87),
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: const BorderSide(color: Colors.grey),
+                  ),
+                  child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF104A7C),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Keluar', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ],
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      ),
     );
+
+    if (confirm == true) {
+      await FirebaseAuth.instance.signOut();
+      if (!mounted) {
+        return;
+      }
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
+    }
   }
 
   @override
