@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
-
 import '../auth/login_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -41,45 +40,32 @@ class _ProfilePageState extends State<ProfilePage> {
     super.dispose();
   }
 
+  // Mengambil data profil pengguna dari Firestore berdasarkan Email
   Future<void> _loadUserProfile() async {
     final user = _currentUser;
-    if (user == null) {
-      return;
-    }
+    if (user == null) return;
 
-    // Try to get data from Firestore first
     String name = user.displayName ?? '';
     String email = user.email ?? '-';
     String whatsApp = '-';
 
     try {
+      // Mengambil dokumen pengguna menggunakan email sebagai ID Dokumen
       final doc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid)
+          .doc(email) 
           .get();
 
       if (doc.exists) {
         final data = doc.data()!;
-        name = data['name'] ?? name;
         whatsApp = data['whatsApp'] ?? '-';
+        name = data['name'] ?? (email.split('@').first);
       }
     } catch (e) {
-      debugPrint('Error loading profile from Firestore: $e');
+      debugPrint('Error loading profile: $e');
     }
 
-    // Fallback to SharedPreferences if Firestore fails or data is missing
-    if (whatsApp == '-') {
-      final prefs = await SharedPreferences.getInstance();
-      whatsApp = prefs.getString('profile_whatsapp_${user.uid}') ?? '-';
-    }
-
-    if (name.isEmpty) {
-      name = email.split('@').first.isNotEmpty ? email.split('@').first : 'User';
-    }
-
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     setState(() {
       _nameController.text = name;
@@ -91,208 +77,74 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  // Menyimpan perubahan profil ke database Firestore
   Future<void> _saveProfile() async {
     final user = _currentUser;
-    if (user == null) {
-      return;
-    }
+    if (user == null) return;
 
     final updatedName = _nameController.text.trim();
-    final updatedEmail = _emailController.text.trim();
     final updatedWhatsApp = _whatsAppController.text.trim();
 
-    if (updatedName.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Nama tidak boleh kosong')));
+    if (updatedName.isEmpty || updatedWhatsApp.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Field tidak boleh kosong')));
       return;
     }
 
-    if (updatedEmail.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Email tidak boleh kosong')));
-      return;
-    }
-
-    if (updatedWhatsApp.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Nomor Whatsapp tidak boleh kosong')));
-      return;
-    }
-
-    if (updatedWhatsApp.length < 10 || updatedWhatsApp.length > 15) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nomor Whatsapp harus 10-15 karakter')),
-      );
-      return;
-    }
-
-    // nomor whatsapp tidak boleh sama dengan nomor user lain (kecuali nomor sendiri)
-    if (updatedWhatsApp != _initialWhatsApp) {
-      setState(() => _isSaving = true);
-      try {
-        final whatsAppDocs = await FirebaseFirestore.instance
-            .collection('users')
-            .where('whatsApp', isEqualTo: updatedWhatsApp)
-            .limit(1)
-            .get();
-
-        if (whatsAppDocs.docs.isNotEmpty) {
-          setState(() => _isSaving = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Nomor Whatsapp sudah terdaftar')),
-          );
-          return;
-        }
-      } catch (e) {
-        print('Error check WhatsApp: $e');
-        setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengecek nomor Whatsapp: $e')),
-        );
-        return;
-      }
-    }
-
-    setState(() {
-      _isSaving = true;
-    });
+    setState(() => _isSaving = true);
 
     try {
-      if (updatedName != (user.displayName ?? '').trim()) {
-        await user.updateDisplayName(updatedName);
-      }
-
-      if (updatedEmail != user.email) {
-        try {
-          await user.verifyBeforeUpdateEmail(updatedEmail);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Link verifikasi email baru telah dikirim. Silakan cek email Anda.',
-              ),
-            ),
-          );
-        } catch (e) {
-          debugPrint('Error updating email: $e');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal memperbarui email: ${e.toString()}')),
-          );
-        }
-      }
-
-      await user.reload();
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        'profile_whatsapp_${user.uid}',
-        updatedWhatsApp.isEmpty ? '-' : updatedWhatsApp,
-      );
-
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      // Update data di koleksi 'users' dengan menyertakan timestamp
+      await FirebaseFirestore.instance.collection('users').doc(user.email).set({
         'name': updatedName,
-        'email': updatedEmail,
-        'whatsApp': updatedWhatsApp.isEmpty ? '-' : updatedWhatsApp,
+        'whatsApp': updatedWhatsApp,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      if (!mounted) {
-        return;
+      if (updatedName != user.displayName) {
+        await user.updateDisplayName(updatedName);
       }
 
       setState(() {
         _initialName = updatedName;
-        _initialEmail = updatedEmail;
-        _initialWhatsApp = updatedWhatsApp.isEmpty ? '-' : updatedWhatsApp;
+        _initialWhatsApp = updatedWhatsApp;
         isEditing = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil berhasil diperbarui')),
-      );
-    } on FirebaseAuthException catch (e) {
-      final message = e.message ?? 'Gagal memperbarui profil';
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profil berhasil diperbarui')));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e')));
     } finally {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _isSaving = false;
-      });
+      setState(() => _isSaving = false);
     }
   }
 
   void _startEditing() {
-    setState(() {
-      _initialName = _nameController.text;
-      _initialEmail = _emailController.text;
-      _initialWhatsApp = _whatsAppController.text;
-      isEditing = true;
-    });
+    setState(() => isEditing = true);
   }
 
   void _cancelEditing() {
     setState(() {
       _nameController.text = _initialName;
-      _emailController.text = _initialEmail;
       _whatsAppController.text = _initialWhatsApp;
       isEditing = false;
     });
   }
 
+  // Fungsi untuk menangani proses logout pengguna
   Future<void> _logout() async {
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Konfirmasi Keluar',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Color(0xFF104A7C), fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          'Apakah Anda yakin ingin keluar dari akun?',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.black87),
-        ),
+        title: const Text('Konfirmasi Keluar', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF104A7C), fontWeight: FontWeight.bold)),
+        content: const Text('Apakah Anda yakin ingin keluar dari akun?', textAlign: TextAlign.center),
         actions: [
           Row(
             children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    side: const BorderSide(color: Colors.grey),
-                  ),
-                  child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-                ),
-              ),
+              Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal'))),
               const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF104A7C),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Keluar', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ),
+              Expanded(child: ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF104A7C)), child: const Text('Keluar', style: TextStyle(color: Colors.white)))),
             ],
           ),
         ],
@@ -302,14 +154,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
     if (confirm == true) {
       await FirebaseAuth.instance.signOut();
-      if (!mounted) {
-        return;
-      }
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-        (route) => false,
-      );
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginPage()), (route) => false);
     }
   }
 
@@ -320,167 +166,58 @@ class _ProfilePageState extends State<ProfilePage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Blue Header
+            // Bagian Header Profil
             Container(
-              width: double.infinity,
-              height: 350,
+              width: double.infinity, height: 350,
               decoration: const BoxDecoration(
                 color: Color(0xFF104A7C),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
-                ),
+                borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    'Profile',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  const Text('Profile', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 20),
-                  const CircleAvatar(
-                    radius: 60,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.person,
-                      size: 80,
-                      color: Color(0xFF104A7C),
-                    ),
-                  ),
+                  const CircleAvatar(radius: 60, backgroundColor: Colors.white, child: Icon(Icons.person, size: 80, color: Color(0xFF104A7C))),
                   const SizedBox(height: 15),
-                  Text(
-                    _nameController.text.isEmpty
-                        ? 'User'
-                        : _nameController.text,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    _emailController.text.isEmpty ? '-' : _emailController.text,
-                    style: const TextStyle(color: Colors.white70),
-                  ),
+                  Text(_nameController.text.isEmpty ? 'User' : _nameController.text, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                  Text(_emailController.text, style: const TextStyle(color: Colors.white70)),
                 ],
               ),
             ),
-            // Information Card
+            // Bagian Form Informasi Kontak
             Padding(
               padding: const EdgeInsets.all(24),
               child: Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(25),
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20)],
-                ),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20)]),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Informasi kontak',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        if (!isEditing)
-                          TextButton.icon(
-                            onPressed: _startEditing,
-                            icon: const Icon(Icons.edit, size: 16),
-                            label: const Text('Edit'),
-                          ),
+                        const Text('Informasi kontak', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        if (!isEditing) TextButton.icon(onPressed: _startEditing, icon: const Icon(Icons.edit, size: 16), label: const Text('Edit')),
                       ],
                     ),
                     const SizedBox(height: 20),
-                    _buildTextField(
-                      label: 'Nama',
-                      controller: _nameController,
-                      enabled: isEditing,
-                      onChanged: (_) => setState(() {}),
-                    ),
+                    _buildTextField(label: 'Nama', controller: _nameController, enabled: isEditing),
                     const SizedBox(height: 15),
-                    _buildTextField(
-                      label: 'Email',
-                      controller: _emailController,
-                      enabled: isEditing,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
+                    _buildTextField(label: 'Email', controller: _emailController, enabled: false), 
                     const SizedBox(height: 15),
-                    _buildTextField(
-                      label: 'Nomor Whatsapp',
-                      controller: _whatsAppController,
-                      enabled: isEditing,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    ),
+                    _buildTextField(label: 'Nomor WhatsApp', controller: _whatsAppController, enabled: isEditing, keyboardType: TextInputType.number),
                     const SizedBox(height: 25),
                     if (isEditing)
                       Row(
                         children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: _isSaving ? null : _saveProfile,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              child: _isSaving
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Text(
-                                      'Simpan',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                            ),
-                          ),
+                          Expanded(child: ElevatedButton(onPressed: _isSaving ? null : _saveProfile, style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Simpan', style: TextStyle(color: Colors.white)))),
                           const SizedBox(width: 10),
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: _isSaving ? null : _cancelEditing,
-                              style: OutlinedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              child: const Text('Batal'),
-                            ),
-                          ),
+                          Expanded(child: OutlinedButton(onPressed: _cancelEditing, child: const Text('Batal'))),
                         ],
                       )
                     else
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _logout,
-                          icon: const Icon(Icons.logout, color: Colors.red),
-                          label: const Text(
-                            'Keluar',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.withOpacity(0.1),
-                            elevation: 0,
-                          ),
-                        ),
-                      ),
+                      SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: _logout, icon: const Icon(Icons.logout, color: Colors.red), label: const Text('Keluar', style: TextStyle(color: Colors.red)), style: ElevatedButton.styleFrom(backgroundColor: Colors.red.withOpacity(0.1), elevation: 0))),
                   ],
                 ),
               ),
@@ -491,36 +228,14 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildTextField({
-    required String label,
-    required TextEditingController controller,
-    required bool enabled,
-    ValueChanged<String>? onChanged,
-    TextInputType? keyboardType,
-    List<TextInputFormatter>? inputFormatters,
-  }) {
+  // Helper widget untuk membuat field teks
+  Widget _buildTextField({required String label, required TextEditingController controller, required bool enabled, TextInputType? keyboardType}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-        ),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
         const SizedBox(height: 5),
-        TextField(
-          controller: controller,
-          enabled: enabled,
-          onChanged: onChanged,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 15,
-              vertical: 10,
-            ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        ),
+        TextField(controller: controller, enabled: enabled, keyboardType: keyboardType, decoration: InputDecoration(contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
       ],
     );
   }

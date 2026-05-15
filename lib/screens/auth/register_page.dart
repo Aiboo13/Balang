@@ -1,9 +1,8 @@
 ﻿import 'package:flutter/material.dart';
-import 'login_page.dart'; // Import ke halaman login
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
+import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -17,12 +16,10 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _whatsappController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
-  final TextEditingController _codeController = TextEditingController();
 
   bool _isLoading = false;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
-  bool _isCodeSent = false;
   String? _errorMessage;
 
   final Color primaryColor = const Color(0xFF1B527E);
@@ -32,135 +29,117 @@ class _RegisterPageState extends State<RegisterPage> {
     final whatsapp = _whatsappController.text.trim();
     final password = _passwordController.text;
     final confirm = _confirmController.text;
-    final code = _codeController.text.trim();
 
-    setState(() {
-      _errorMessage = null;
-    });
+    setState(() => _errorMessage = null);
 
-    if (email.isEmpty ||
-        whatsapp.isEmpty ||
-        password.isEmpty ||
-        confirm.isEmpty ||
-        code.isEmpty) {
+    // Validasi input form
+    if (email.isEmpty || whatsapp.isEmpty || password.isEmpty || confirm.isEmpty) {
       setState(() => _errorMessage = 'Semua field wajib diisi');
       return;
     }
-    if (!email.endsWith('@gmail.com')) {
-      setState(() => _errorMessage = 'Email harus berakhiran @gmail.com');
-      return;
-    }
-    if (whatsapp.length < 10 || whatsapp.length > 15) {
-      setState(() => _errorMessage = 'Nomor Whatsapp harus 10-15 karakter');
-      return;
-    }
+
     if (password != confirm) {
-      setState(() => _errorMessage = 'Password tidak sama');
+      setState(() => _errorMessage = 'Konfirmasi password tidak sesuai');
       return;
     }
-    
+
     setState(() => _isLoading = true);
     try {
-      // 1. Buat user di Firebase Authentication dulu agar kita "Signed In"
-      // (Ini diperlukan agar kita punya izin membaca koleksi users di Firestore)
-      final credential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: email, password: password);
-      
-      // 2. Sekarang kita sudah login, baru cek duplikasi nomor WA
-      final whatsAppDocs = await FirebaseFirestore.instance
-          .collection('users')
-          .where('whatsApp', isEqualTo: whatsapp)
-          .limit(1)
-          .get();
+      // Proses pembuatan akun di Firebase Authentication
+      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-      if (whatsAppDocs.docs.isNotEmpty) {
-        // Jika duplikat, hapus akun Auth yang baru dibuat dan beri pesan error
-        await credential.user?.delete();
-        setState(() {
-          _errorMessage = 'Nomor Whatsapp sudah terdaftar';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // 3. Jika aman, simpan data ke Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(credential.user!.uid)
-          .set({
+      // Menyimpan data pengguna tambahan ke Cloud Firestore
+      await FirebaseFirestore.instance.collection('users').doc(email).set({
+        'uid': credential.user!.uid,
         'email': email,
         'whatsApp': whatsapp,
+        'password': password,
         'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      
+      });
+
       await FirebaseAuth.instance.signOut();
-      
+
       if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Text(
-              'Registrasi Berhasil',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
-            ),
-            content: const Text(
-              'Akun Anda telah berhasil dibuat. Silakan login untuk melanjutkan.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.black87),
-            ),
-            actions: [
-              Center(
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginPage()),
-                        (route) => false,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ),
-            ],
-            actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          ),
-        );
+        _showSuccessDialog();
       }
     } on FirebaseAuthException catch (e) {
-      String message = 'Terjadi kesalahan saat register';
-      if (e.code == 'weak-password') {
-        message = 'Password terlalu lemah';
-      } else if (e.code == 'email-already-in-use') {
-        message = 'Email sudah terdaftar';
-      } else if (e.message != null) {
-        message = e.message!;
-      }
-      setState(() => _errorMessage = message);
+      setState(() => _errorMessage = e.message);
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  void _sendCode() {
-    setState(() {
-      _isCodeSent = true;
-    });
-    // logic to send code
+  // Menampilkan dialog sukses registrasi dengan desain kustom
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        child: Container(
+          padding: const EdgeInsets.all(25),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(25),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.check_circle_outline, color: primaryColor, size: 70),
+              const SizedBox(height: 20),
+              Text(
+                'Registrasi Berhasil',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: primaryColor,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Akun Anda telah berhasil dibuat.\nSilakan masuk untuk melanjutkan.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Color(0xFF4A4A4A), height: 1.5),
+              ),
+              const SizedBox(height: 30),
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginPage()),
+                      (route) => false,
+                    );
+                  },
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -169,205 +148,63 @@ class _RegisterPageState extends State<RegisterPage> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Dekorasi Atas
+          // Dekorasi UI bagian atas
           Positioned(
-            right: -60,
-            top: 70,
+            right: -60, top: 70,
             child: Container(
-              width: 180,
-              height: 220,
+              width: 180, height: 220,
               decoration: BoxDecoration(
                 color: primaryColor,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(100),
-                  bottomLeft: Radius.circular(100),
-                ),
+                borderRadius: const BorderRadius.only(topLeft: Radius.circular(100), bottomLeft: Radius.circular(100)),
               ),
             ),
           ),
-
-          // Dekorasi Bawah
+          // Dekorasi UI bagian bawah
           Positioned(
-            left: -30,
-            bottom: -30,
+            left: -30, bottom: -30,
             child: Container(
-              width: 160,
-              height: 160,
+              width: 160, height: 160,
               decoration: BoxDecoration(
                 color: primaryColor,
-                borderRadius: const BorderRadius.only(
-                  topRight: Radius.circular(100),
-                ),
+                borderRadius: const BorderRadius.only(topRight: Radius.circular(100)),
               ),
             ),
           ),
-
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 35),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 40),
-                    Text(
-                      'DAFTAR',
-                      style: TextStyle(
-                        fontSize: 38,
-                        fontWeight: FontWeight.w900,
-                        color: primaryColor,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
+                    Text('DAFTAR', style: TextStyle(fontSize: 38, fontWeight: FontWeight.w900, color: primaryColor, letterSpacing: 1.5)),
                     const SizedBox(height: 12),
-                    const Text(
-                      "Mulai cari barangmu di\nsini",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF4A4A4A),
-                      ),
-                    ),
+                    const Text("Mulai cari barangmu di\nsini", textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF4A4A4A))),
                     const SizedBox(height: 50),
-
-                    _buildInputField(
-                      hintText: 'masukkan email yang terdaftar (wajib)',
-                      isPassword: false,
-                      controller: _emailController,
-                    ),
+                    _buildInputField(hint: 'Masukkan email yang terdaftar (wajib)', controller: _emailController, isPass: false),
                     const SizedBox(height: 18),
-
-                    _buildInputField(
-                      hintText: 'No. Whastapp',
-                      isPassword: false,
-                      controller: _whatsappController,
-                      keyboardType: TextInputType.number,
-                      maxLength: 15,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    ),
+                    _buildInputField(hint: 'No. WhatsApp', controller: _whatsappController, isPass: false, keyboard: TextInputType.number),
                     const SizedBox(height: 18),
-
-                    _buildInputField(
-                      hintText: 'Kata Sandi (Minimal 6 karakter)',
-                      isPassword: true,
-                      controller: _passwordController,
-                      isVisible: _isPasswordVisible,
-                      onToggle: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
-                    ),
+                    _buildInputField(hint: 'Kata Sandi', controller: _passwordController, isPass: true, visible: _isPasswordVisible, onToggle: () => setState(() => _isPasswordVisible = !_isPasswordVisible)),
                     const SizedBox(height: 18),
-
-                    _buildInputField(
-                      hintText: 'Konfirmasi Kata Sandi',
-                      isPassword: true,
-                      controller: _confirmController,
-                      isVisible: _isConfirmPasswordVisible,
-                      onToggle: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
-                    ),
-                    const SizedBox(height: 18),
-
-                    //_buildInputField(
-                    //  hintText: 'Masukan Kode',
-                    //  isPassword: false,
-                    //  controller: _codeController,
-                    //  suffix: GestureDetector(
-                    //    onTap: _sendCode,
-                    //    child: Container(
-                    //      margin: const EdgeInsets.all(8),
-                    //      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                    //      decoration: BoxDecoration(
-                    //        color: Colors.grey[400],
-                    //        borderRadius: BorderRadius.circular(15),
-                    //      ),
-                    //      child: const Text(
-                    //        'Kirim Kode',
-                    //        style: TextStyle(
-                    //          color: Colors.black,
-                    //          fontSize: 12,
-                    //          fontWeight: FontWeight.bold,
-                    //        ),
-                    //      ),
-                    //    ),
-                    //  ),
-                    //),
-                    
+                    _buildInputField(hint: 'Konfirmasi Kata Sandi', controller: _confirmController, isPass: true, visible: _isConfirmPasswordVisible, onToggle: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible)),
                     const SizedBox(height: 30),
-
-                    if (_errorMessage != null) ...[
-                      Text(
-                        _errorMessage!,
-                        style: const TextStyle(color: Colors.red, fontSize: 13),
-                      ),
-                      const SizedBox(height: 10),
-                    ],
-
+                    if (_errorMessage != null) Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                    const SizedBox(height: 10),
                     SizedBox(
-                      width: double.infinity,
-                      height: 58,
+                      width: double.infinity, height: 58,
                       child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                        ),
+                        style: ElevatedButton.styleFrom(backgroundColor: primaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
                         onPressed: _isLoading ? null : _register,
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text(
-                                'DAFTAR',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1,
-                                ),
-                              ),
+                        child: _isLoading 
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
+                          : const Text('DAFTAR', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                       ),
                     ),
-
-                    const SizedBox(height: 20),
-
-                    if (_isCodeSent)
-                      const Text(
-                        'Kode verifikasi Terkirim',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      )
-                    else
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: RichText(
-                          text: TextSpan(
-                            style: const TextStyle(
-                              color: Colors.black87,
-                              fontSize: 14,
-                            ),
-                            children: [
-                              const TextSpan(text: 'Sudah punya akun.? '),
-                              TextSpan(
-                                text: 'Masuk Sekarang',
-                                style: TextStyle(
-                                  color: primaryColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 25),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: RichText(text: TextSpan(style: const TextStyle(color: Colors.black87, fontSize: 14), children: [const TextSpan(text: 'Sudah punya akun? '), TextSpan(text: 'Masuk Sekarang', style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold))])),
+                    ),
                   ],
                 ),
               ),
@@ -378,58 +215,21 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget _buildInputField({
-    required String hintText,
-    required bool isPassword,
-    TextEditingController? controller,
-    bool? isVisible,
-    VoidCallback? onToggle,
-    Widget? suffix,
-    TextInputType? keyboardType,
-    List<TextInputFormatter>? inputFormatters,
-    int? maxLength,
-  }) {
+  // Widget kustom untuk input field
+  Widget _buildInputField({required String hint, required TextEditingController controller, required bool isPass, bool? visible, VoidCallback? onToggle, TextInputType? keyboard}) {
     return TextField(
       controller: controller,
-      obscureText: isPassword ? !(isVisible ?? false) : false,
-      keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
-      maxLength: maxLength,
+      obscureText: isPass ? !(visible ?? false) : false,
+      keyboardType: keyboard,
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
-        counterText: '', // Sembunyikan counter di bawah input
-        hintText: hintText,
-        hintStyle: const TextStyle(
-          color: Colors.grey,
-          fontWeight: FontWeight.normal,
-          fontSize: 14,
-        ),
-        filled: true,
-        fillColor: Colors.white,
-        suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  (isVisible ?? false) ? Icons.visibility : Icons.visibility_off,
-                  color: Colors.black,
-                  size: 26,
-                ),
-                onPressed: onToggle,
-              )
-            : suffix,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 22,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: Colors.black54, width: 1),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: primaryColor, width: 1.5),
-        ),
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.grey, fontWeight: FontWeight.normal, fontSize: 14),
+        filled: true, fillColor: Colors.white,
+        suffixIcon: isPass ? IconButton(icon: Icon((visible ?? false) ? Icons.visibility : Icons.visibility_off, color: Colors.black), onPressed: onToggle) : null,
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: Colors.black54, width: 1)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: primaryColor, width: 1.5)),
       ),
     );
   }
 }
-
