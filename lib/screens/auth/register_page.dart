@@ -50,6 +50,10 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() => _errorMessage = 'Email harus berakhiran @gmail.com');
       return;
     }
+    if (whatsapp.length < 10 || whatsapp.length > 15) {
+      setState(() => _errorMessage = 'Nomor Whatsapp harus 10-15 karakter');
+      return;
+    }
     if (password != confirm) {
       setState(() => _errorMessage = 'Password tidak sama');
       return;
@@ -57,9 +61,29 @@ class _RegisterPageState extends State<RegisterPage> {
     
     setState(() => _isLoading = true);
     try {
+      // 1. Buat user di Firebase Authentication dulu agar kita "Signed In"
+      // (Ini diperlukan agar kita punya izin membaca koleksi users di Firestore)
       final credential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
       
+      // 2. Sekarang kita sudah login, baru cek duplikasi nomor WA
+      final whatsAppDocs = await FirebaseFirestore.instance
+          .collection('users')
+          .where('whatsApp', isEqualTo: whatsapp)
+          .limit(1)
+          .get();
+
+      if (whatsAppDocs.docs.isNotEmpty) {
+        // Jika duplikat, hapus akun Auth yang baru dibuat dan beri pesan error
+        await credential.user?.delete();
+        setState(() {
+          _errorMessage = 'Nomor Whatsapp sudah terdaftar';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // 3. Jika aman, simpan data ke Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(credential.user!.uid)
@@ -208,7 +232,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     const SizedBox(height: 50),
 
                     _buildInputField(
-                      hintText: 'contoh: user@gmail.com',
+                      hintText: 'masukkan email yang terdaftar (wajib)',
                       isPassword: false,
                       controller: _emailController,
                     ),
@@ -219,6 +243,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       isPassword: false,
                       controller: _whatsappController,
                       keyboardType: TextInputType.number,
+                      maxLength: 15,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
                     const SizedBox(height: 18),
@@ -241,31 +266,31 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     const SizedBox(height: 18),
 
-                    _buildInputField(
-                      hintText: 'Masukan Kode',
-                      isPassword: false,
-                      controller: _codeController,
-                      suffix: GestureDetector(
-                        onTap: _sendCode,
-                        child: Container(
-                          margin: const EdgeInsets.all(8),
-                          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[400],
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: const Text(
-                            'Kirim Kode',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
+                    //_buildInputField(
+                    //  hintText: 'Masukan Kode',
+                    //  isPassword: false,
+                    //  controller: _codeController,
+                    //  suffix: GestureDetector(
+                    //    onTap: _sendCode,
+                    //    child: Container(
+                    //      margin: const EdgeInsets.all(8),
+                    //      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                    //      decoration: BoxDecoration(
+                    //        color: Colors.grey[400],
+                    //        borderRadius: BorderRadius.circular(15),
+                    //      ),
+                    //      child: const Text(
+                    //        'Kirim Kode',
+                    //        style: TextStyle(
+                    //          color: Colors.black,
+                    //          fontSize: 12,
+                    //          fontWeight: FontWeight.bold,
+                    //        ),
+                    //      ),
+                    //    ),
+                    //  ),
+                    //),
+                    
                     const SizedBox(height: 30),
 
                     if (_errorMessage != null) ...[
@@ -362,14 +387,17 @@ class _RegisterPageState extends State<RegisterPage> {
     Widget? suffix,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
+    int? maxLength,
   }) {
     return TextField(
       controller: controller,
       obscureText: isPassword ? !(isVisible ?? false) : false,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
+      maxLength: maxLength,
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
+        counterText: '', // Sembunyikan counter di bawah input
         hintText: hintText,
         hintStyle: const TextStyle(
           color: Colors.grey,

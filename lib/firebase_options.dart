@@ -85,5 +85,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'balang-3.firebasestorage.app',
     measurementId: 'G-N4E7BVCPEJ',
   );
-
 }

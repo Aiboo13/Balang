@@ -393,7 +393,7 @@ class _AddReportPageState extends State<AddReportPage> {
                     // --- Input Judul ---
                     TextFormField(
                       controller: _titleController,
-                      maxLength: 50,
+                      maxLength: 20,
                       decoration: const InputDecoration(
                         labelText: 'Nama Barang',
                         border: OutlineInputBorder(),
@@ -402,7 +402,7 @@ class _AddReportPageState extends State<AddReportPage> {
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Wajib diisi';
                         if (v.trim().length < 3) return 'Minimal 3 karakter';
-                        if (v.trim().length > 50) return 'Maksimal 50 karakter';
+                        if (v.trim().length > 50) return 'Maksimal 10 karakter';
                         return null;
                       },
                     ),

@@ -115,6 +115,47 @@ class _ProfilePageState extends State<ProfilePage> {
       return;
     }
 
+    if (updatedWhatsApp.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Nomor Whatsapp tidak boleh kosong')));
+      return;
+    }
+
+    if (updatedWhatsApp.length < 10 || updatedWhatsApp.length > 15) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nomor Whatsapp harus 10-15 karakter')),
+      );
+      return;
+    }
+
+    // nomor whatsapp tidak boleh sama dengan nomor user lain (kecuali nomor sendiri)
+    if (updatedWhatsApp != _initialWhatsApp) {
+      setState(() => _isSaving = true);
+      try {
+        final whatsAppDocs = await FirebaseFirestore.instance
+            .collection('users')
+            .where('whatsApp', isEqualTo: updatedWhatsApp)
+            .limit(1)
+            .get();
+
+        if (whatsAppDocs.docs.isNotEmpty) {
+          setState(() => _isSaving = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Nomor Whatsapp sudah terdaftar')),
+          );
+          return;
+        }
+      } catch (e) {
+        print('Error check WhatsApp: $e');
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengecek nomor Whatsapp: $e')),
+        );
+        return;
+      }
+    }
+
     setState(() {
       _isSaving = true;
     });
