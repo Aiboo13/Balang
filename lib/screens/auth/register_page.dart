@@ -1,7 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart'; // Dibutuhkan untuk TextInputFormatter
 import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -37,14 +37,43 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() => _errorMessage = 'Semua field wajib diisi');
       return;
     }
-
+    
+    // Perbaikan pesan error agar sinkron dengan batasan max 20 karakter
+    if (password.length > 20) {
+      setState(() => _errorMessage = 'Password tidak boleh melebihi 20 karakter');
+      return;
+    }
+    
+    if (password.length < 6) {
+      setState(() => _errorMessage = 'Password tidak boleh kurang dari 6 karakter');
+      return;
+    }
     if (password != confirm) {
       setState(() => _errorMessage = 'Konfirmasi password tidak sesuai');
+      return;
+    }
+    if (!email.endsWith('@gmail.com')) {
+      setState(() => _errorMessage = 'Email harus menggunakan @gmail.com');
+      return;
+    }
+    if (!RegExp(r'^[0-9]{7,15}$').hasMatch(whatsapp)) {
+      setState(() => _errorMessage = 'Nomor WhatsApp tidak valid');
       return;
     }
 
     setState(() => _isLoading = true);
     try {
+      // Cek apakah nomor WhatsApp sudah digunakan oleh akun lain
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('whatsApp', isEqualTo: whatsapp)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        setState(() => _errorMessage = 'Nomor WhatsApp sudah terdaftar');
+        return;
+      }
+
       // Proses pembuatan akun di Firebase Authentication
       final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
@@ -67,6 +96,8 @@ class _RegisterPageState extends State<RegisterPage> {
       }
     } on FirebaseAuthException catch (e) {
       setState(() => _errorMessage = e.message);
+    } catch (e) {
+      setState(() => _errorMessage = e.toString());
     } finally {
       setState(() => _isLoading = false);
     }
@@ -180,14 +211,50 @@ class _RegisterPageState extends State<RegisterPage> {
                     const SizedBox(height: 12),
                     const Text("Mulai cari barangmu di\nsini", textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF4A4A4A))),
                     const SizedBox(height: 50),
-                    _buildInputField(hint: 'Masukkan email yang terdaftar (wajib)', controller: _emailController, isPass: false),
-                    const SizedBox(height: 18),
-                    _buildInputField(hint: 'No. WhatsApp', controller: _whatsappController, isPass: false, keyboard: TextInputType.number),
-                    const SizedBox(height: 18),
-                    _buildInputField(hint: 'Kata Sandi', controller: _passwordController, isPass: true, visible: _isPasswordVisible, onToggle: () => setState(() => _isPasswordVisible = !_isPasswordVisible)),
-                    const SizedBox(height: 18),
-                    _buildInputField(hint: 'Konfirmasi Kata Sandi', controller: _confirmController, isPass: true, visible: _isConfirmPasswordVisible, onToggle: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible)),
+                    
+                    // 1. Validasi spasi pada Email
+                    _buildInputField(
+                      hint: 'Masukkan email yang terdaftar (wajib)', 
+                      controller: _emailController, 
+                      isPass: false,
+                      keyboard: TextInputType.emailAddress,
+                      inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
+                    ),
+                    const SizedBox(height: 25),
+                    
+                    // 2. Batasan WhatsApp Maksimal 15 karakter & Hanya angka murni
+                    _buildInputField(
+                      hint: 'No. WhatsApp yang terdaftar (wajib)', 
+                      controller: _whatsappController, 
+                      isPass: false, 
+                      keyboard: TextInputType.number,
+                      maxLength: 15,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    ),
+                    const SizedBox(height: 25),
+                    
+                    // 3. Batasan Kata Sandi Maksimal 20 karakter
+                    _buildInputField(
+                      hint: 'Kata Sandi (min 6 karakter dan max 20 karakter)', 
+                      controller: _passwordController, 
+                      isPass: true, 
+                      visible: _isPasswordVisible, 
+                      maxLength: 20,
+                      onToggle: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                    ),
+                    const SizedBox(height: 25),
+                    
+                    // 4. Batasan Konfirmasi Kata Sandi Maksimal 20 karakter
+                    _buildInputField(
+                      hint: 'Konfirmasi Kata Sandi', 
+                      controller: _confirmController, 
+                      isPass: true, 
+                      visible: _isConfirmPasswordVisible, 
+                      maxLength: 20,
+                      onToggle: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+                    ),
                     const SizedBox(height: 30),
+                    
                     if (_errorMessage != null) Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 13)),
                     const SizedBox(height: 10),
                     SizedBox(
@@ -215,17 +282,30 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  // Widget kustom untuk input field
-  Widget _buildInputField({required String hint, required TextEditingController controller, required bool isPass, bool? visible, VoidCallback? onToggle, TextInputType? keyboard}) {
+  // Widget kustom untuk input field (Sudah ditambahkan maxLength dan inputFormatters)
+  Widget _buildInputField({
+    required String hint, 
+    required TextEditingController controller, 
+    required bool isPass, 
+    bool? visible, 
+    VoidCallback? onToggle, 
+    TextInputType? keyboard,
+    int? maxLength, // Parameter Baru
+    List<TextInputFormatter>? inputFormatters, // Parameter Baru
+  }) {
     return TextField(
       controller: controller,
       obscureText: isPass ? !(visible ?? false) : false,
       keyboardType: keyboard,
+      maxLength: maxLength, // Mengunci panjang karakter di level keyboard
+      inputFormatters: inputFormatters, // Mengontrol jenis karakter yang masuk
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.grey, fontWeight: FontWeight.normal, fontSize: 14),
-        filled: true, fillColor: Colors.white,
+        filled: true, 
+        fillColor: Colors.white,
+        counterText: "", // Menghilangkan teks info angka counter agar tampilan UI tetap clean
         suffixIcon: isPass ? IconButton(icon: Icon((visible ?? false) ? Icons.visibility : Icons.visibility_off, color: Colors.black), onPressed: onToggle) : null,
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: Colors.black54, width: 1)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: primaryColor, width: 1.5)),

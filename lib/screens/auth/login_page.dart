@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Ditambahkan untuk TextInputFormatter
 import '../../main.dart';
 import 'register_page.dart';
 import 'forgot_password_page.dart';
@@ -28,6 +29,7 @@ class _LoginPageState extends State<LoginPage> {
       _errorMessage = null;
     });
 
+    // 1. VALIDASI LOKAL (Wajib dilakukan sebelum memanggil Firebase)
     if (email.isEmpty || password.isEmpty) {
       setState(() => _errorMessage = 'Email dan password wajib diisi');
       return;
@@ -36,12 +38,25 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _errorMessage = 'Email harus berakhiran @gmail.com');
       return;
     }
+    if (password.length < 6) {
+      setState(() => _errorMessage = 'Password minimal 6 karakter');
+      return;
+    }
+    if (password.length > 20) {
+      setState(
+        () => _errorMessage = 'Password tidak boleh melebihi 20 karakter',
+      );
+      return;
+    }
+
+    // 2. PROSES FIREBASE AUTH (Hanya jalan jika validasi di atas lolos)
     setState(() => _isLoading = true);
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -50,14 +65,12 @@ class _LoginPageState extends State<LoginPage> {
       }
     } on FirebaseAuthException catch (e) {
       String message = 'Terjadi kesalahan saat login';
-      if (e.code == 'user-not-found') {
-        message = 'Email tidak terdaftar';
-      } else if (e.code == 'wrong-password') {
-        message = 'Password salah';
+      if (e.code == 'user-not-found' ||
+          e.code == 'wrong-password' ||
+          e.code == 'invalid-credential') {
+        message = 'Email atau password salah';
       } else if (e.code == 'invalid-email') {
         message = 'Format email tidak valid';
-      } else if (e.code == 'invalid-credential') {
-        message = 'Email atau password salah';
       } else if (e.code == 'too-many-requests') {
         message = 'Terlalu banyak percobaan, coba lagi nanti';
       } else if (e.message != null) {
@@ -137,17 +150,24 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 60),
 
+                    // Input Email (Ditambahkan pencegah spasi)
                     _buildInputField(
                       hintText: 'contoh: user@gmail.com',
                       isPassword: false,
                       controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                      ],
                     ),
                     const SizedBox(height: 25),
 
+                    // Input Password (Ditambahkan batasan max 20 karakter)
                     _buildInputField(
                       hintText: 'Masukan Kata Sandi',
                       isPassword: true,
                       controller: _passwordController,
+                      maxLength: 20, // Mengunci keyboard di karakter ke-20
                     ),
 
                     Align(
@@ -177,7 +197,10 @@ class _LoginPageState extends State<LoginPage> {
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Text(
                           _errorMessage!,
-                          style: const TextStyle(color: Colors.red, fontSize: 13),
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],
@@ -259,14 +282,21 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  // Widget kustom input field yang sudah mendukung batasan karakter dan formatter
   Widget _buildInputField({
     required String hintText,
     required bool isPassword,
     TextEditingController? controller,
+    TextInputType? keyboardType,
+    int? maxLength,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       controller: controller,
       obscureText: isPassword ? !_isPasswordVisible : false,
+      keyboardType: keyboardType,
+      maxLength: maxLength,
+      inputFormatters: inputFormatters,
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         hintText: hintText,
@@ -277,6 +307,8 @@ class _LoginPageState extends State<LoginPage> {
         ),
         filled: true,
         fillColor: Colors.white,
+        counterText:
+            "", // Menyembunyikan counter text bawaan agar tampilan tetap rapi
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
@@ -307,4 +339,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-

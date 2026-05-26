@@ -16,8 +16,10 @@ class ForgotPasswordPage extends StatefulWidget {
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   int _currentStep = 0;
   final TextEditingController _emailController = TextEditingController();
-  final List<TextEditingController> _otpControllers =
-      List.generate(4, (_) => TextEditingController());
+  final List<TextEditingController> _otpControllers = List.generate(
+    4,
+    (_) => TextEditingController(),
+  );
   final List<FocusNode> _otpFocusNodes = List.generate(4, (_) => FocusNode());
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
@@ -53,18 +55,23 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       final otp = (1000 + random.nextInt(9000)).toString();
 
       // Simpan ke Firestore untuk verifikasi nanti
-      await FirebaseFirestore.instance.collection('password_resets').doc(email).set({
-        'email': email,
-        'code': otp,
-        'createdAt': FieldValue.serverTimestamp(),
-        'expiresAt': DateTime.now().add(const Duration(minutes: 5)).millisecondsSinceEpoch,
-      });
+      await FirebaseFirestore.instance
+          .collection('password_resets')
+          .doc(email)
+          .set({
+            'email': email,
+            'code': otp,
+            'createdAt': FieldValue.serverTimestamp(),
+            'expiresAt': DateTime.now()
+                .add(const Duration(minutes: 5))
+                .millisecondsSinceEpoch,
+          });
 
       // --- BAGIAN EMAILJS ---
       // Silakan ganti dengan ID dari dashboard EmailJS Anda
-      const serviceId = 'service_0vk20bb'; 
-      const templateId = 'template_lqw064p'; 
-      const publicKey = 'S7G31OmmctAtPmUOK'; 
+      const serviceId = 'service_0vk20bb';
+      const templateId = 'template_lqw064p';
+      const publicKey = 'S7G31OmmctAtPmUOK';
 
       final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
       final response = await http.post(
@@ -90,9 +97,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       _nextStep();
     } catch (e) {
       print('Error detail: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal mengirim kode: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal mengirim kode: $e')));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -103,9 +110,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     final otpInput = _otpControllers.map((c) => c.text).join();
 
     if (otpInput.length < 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Masukkan 4 digit kode')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Masukkan 4 digit kode')));
       return;
     }
 
@@ -134,9 +141,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
       _nextStep();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -163,21 +170,56 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
     setState(() => _isLoading = true);
     try {
-      // Catatan: Firebase Client SDK tidak mengizinkan ganti password tanpa login.
-      // Kita gunakan sendPasswordResetEmail sebagai fallback resmi atau 
-      // menginstruksikan user. Namun untuk simulasi "berhasil" sesuai UI:
-      
-      // Jika Anda menggunakan Firebase Auth secara langsung:
-      // await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-      
-      // Hapus data OTP setelah berhasil
-      await FirebaseFirestore.instance.collection('password_resets').doc(email).delete();
-      
+      // 1. Ambil password lama dari Firestore (karena disimpan di database users)
+      // Kita query menggunakan filter 'email' agar kompatibel baik jika document ID berupa UID (akun lama) maupun email (akun baru).
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        throw 'Akun dengan email tersebut tidak ditemukan di database.';
+      }
+
+      final userDoc = querySnapshot.docs.first;
+      final oldPassword = userDoc.data()['password'];
+      if (oldPassword == null) {
+        throw 'Data password lama tidak ditemukan di database.';
+      }
+
+      // 2. Login secara senyap/sementara menggunakan password lama agar mendapatkan sesi aktif
+      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: oldPassword,
+      );
+
+      // 3. Update password di Firebase Authentication menggunakan sesi aktif tersebut
+      await userCredential.user?.updatePassword(newPassword);
+
+      // 4. Update password baru di Firestore agar tetap sinkron menggunakan ID dokumen yang tepat
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userDoc.id)
+          .update({
+            'password': newPassword,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
+      // 5. Logout kembali agar user bisa masuk secara manual dengan password baru
+      await FirebaseAuth.instance.signOut();
+
+      // 6. Hapus data OTP setelah berhasil
+      await FirebaseFirestore.instance
+          .collection('password_resets')
+          .doc(email)
+          .delete();
+
       _nextStep();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal reset password: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal reset password: $e')));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -309,12 +351,15 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           child: Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: const Text(
-              'Email (Harus Jelas)',
+              'Masukkan Email',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
           ),
         ),
-        _buildTextField(controller: _emailController, hintText: 'Email (Harus Jelas)'),
+        _buildTextField(
+          controller: _emailController,
+          hintText: 'Email yang terdaftar',
+        ),
         const SizedBox(height: 40),
         _isLoading
             ? const CircularProgressIndicator()
@@ -414,15 +459,19 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           hintText: 'Kata Sandi (Minimal 6 karakter)',
           controller: _passwordController,
           isVisible: _isPasswordVisible,
-          onToggle: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+          maxLength: 20, // Tambahkan ini (Membatasi input maksimal 20 karakter)
+          onToggle: () =>
+              setState(() => _isPasswordVisible = !_isPasswordVisible),
         ),
         const SizedBox(height: 20),
         _buildPasswordField(
           hintText: 'Konfirmasi Kata Sandi',
           controller: _confirmController,
           isVisible: _isConfirmPasswordVisible,
-          onToggle: () =>
-              setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+          maxLength: 20, // Tambahkan ini agar sinkron dengan kata sandi utama
+          onToggle: () => setState(
+            () => _isConfirmPasswordVisible = !_isConfirmPasswordVisible,
+          ),
         ),
         const SizedBox(height: 40),
         _isLoading
@@ -518,7 +567,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         hintText: hintText,
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 18,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
           borderSide: const BorderSide(color: Colors.black38, width: 1),
@@ -536,30 +588,38 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     required TextEditingController controller,
     required bool isVisible,
     required VoidCallback onToggle,
+    int? maxLength, // 1. Tambahkan parameter opsional ini
   }) {
     return TextField(
       controller: controller,
-      obscureText: !isVisible,
+      obscureText: !isVisible, // Membuka/tutup sandi lewat negasi isVisible
+      maxLength: maxLength, // 2. Pasang di sini untuk mengunci input keyboard
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        hintStyle: const TextStyle(
+          color: Colors.grey,
+          fontWeight: FontWeight.normal,
+          fontSize: 14,
+        ),
         filled: true,
         fillColor: Colors.white,
+        counterText:
+            "", // 3. Sembunyikan teks counter angka di pojok kanan bawah
         suffixIcon: IconButton(
           icon: Icon(
             isVisible ? Icons.visibility : Icons.visibility_off,
             color: Colors.black,
-            size: 22,
+            size: 26,
           ),
           onPressed: onToggle,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: Colors.black38, width: 1),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: Colors.black54, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(color: primaryColor, width: 1.5),
         ),
       ),

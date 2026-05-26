@@ -77,24 +77,55 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
-  // Menyimpan perubahan profil ke database Firestore
+// Menyimpan perubahan profil ke database Firestore dengan validasi nomor unik
   Future<void> _saveProfile() async {
     final user = _currentUser;
     if (user == null) return;
 
     final updatedName = _nameController.text.trim();
     final updatedWhatsApp = _whatsAppController.text.trim();
+    final email = user.email ?? '';
 
+    // 1. Validasi input kosong
     if (updatedName.isEmpty || updatedWhatsApp.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Field tidak boleh kosong')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Field tidak boleh kosong')));
+      return;
+    }
+
+    // 2. Validasi format panjang nomor WhatsApp dasar
+    if (!RegExp(r'^[0-9]{7,15}$').hasMatch(updatedWhatsApp)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nomor WhatsApp tidak valid (7-15 digit)')));
       return;
     }
 
     setState(() => _isSaving = true);
 
     try {
-      // Update data di koleksi 'users' dengan menyertakan timestamp
-      await FirebaseFirestore.instance.collection('users').doc(user.email).set({
+      // 3. CEK DUPLIKAT: Hanya cek ke database jika nomor WhatsApp diubah dari nomor awal
+      if (updatedWhatsApp != _initialWhatsApp) {
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('whatsApp', isEqualTo: updatedWhatsApp)
+            .get();
+
+        // Jika ditemukan dokumen lain dengan nomor yang sama
+        if (querySnapshot.docs.isNotEmpty) {
+          setState(() => _isSaving = false);
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Nomor WhatsApp sudah digunakan oleh akun lain!'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+      }
+
+      // 4. Proses simpan data jika lolos validasi duplikat
+      await FirebaseFirestore.instance.collection('users').doc(email).set({
         'name': updatedName,
         'whatsApp': updatedWhatsApp,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -110,11 +141,16 @@ class _ProfilePageState extends State<ProfilePage> {
         isEditing = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profil berhasil diperbarui')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profil berhasil diperbarui')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e')));
     } finally {
-      setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -206,8 +242,16 @@ class _ProfilePageState extends State<ProfilePage> {
                     const SizedBox(height: 15),
                     _buildTextField(label: 'Email', controller: _emailController, enabled: false), 
                     const SizedBox(height: 15),
-                    _buildTextField(label: 'Nomor WhatsApp', controller: _whatsAppController, enabled: isEditing, keyboardType: TextInputType.number),
-                    const SizedBox(height: 25),
+                    //jadikan supaya tidak bisa duplikat nomor whatsapp
+                    _buildTextField(
+  label: 'Nomor WhatsApp',
+  controller: _whatsAppController,
+  enabled: isEditing,
+  keyboardType: TextInputType.number,
+  maxLength: 15,
+  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+),
+const SizedBox(height: 25),
                     if (isEditing)
                       Row(
                         children: [
@@ -229,14 +273,33 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // Helper widget untuk membuat field teks
-  Widget _buildTextField({required String label, required TextEditingController controller, required bool enabled, TextInputType? keyboardType}) {
+  // Helper widget untuk membuat field teks (Sudah mendukung pembatasan input)
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controller,
+    required bool enabled,
+    TextInputType? keyboardType,
+    int? maxLength,
+    List<TextInputFormatter>? inputFormatters,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
         const SizedBox(height: 5),
-        TextField(controller: controller, enabled: enabled, keyboardType: keyboardType, decoration: InputDecoration(contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
+        TextField(
+          controller: controller,
+          enabled: enabled,
+          keyboardType: keyboardType,
+          maxLength: maxLength,
+          inputFormatters: inputFormatters,
+          decoration: InputDecoration(
+            counterText: "", // Menyembunyikan angka counter text di pojok kanan
+            contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
       ],
     );
-  }
+    }
 }
