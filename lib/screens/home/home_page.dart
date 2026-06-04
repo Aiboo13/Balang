@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -131,7 +131,16 @@ class _HomePageState extends State<HomePage> {
                   return const Center(child: Text("Belum ada laporan."));
                 }
 
-                final docs = snapshot.data!.docs;
+                final allDocs = snapshot.data!.docs;
+                final docs = allDocs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final reportStatus = data['reportStatus'] ?? 'Aktif';
+                  return reportStatus != 'Selesai';
+                }).toList();
+
+                if (docs.isEmpty) {
+                  return const Center(child: Text("Belum ada laporan."));
+                }
 
                 return ListView.builder(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),

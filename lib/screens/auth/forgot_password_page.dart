@@ -254,6 +254,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
+        clipBehavior: Clip.none,
         children: [
           // Dekorasi Atas
           Positioned(
@@ -275,7 +276,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           // Dekorasi Bawah
           Positioned(
             left: -30,
-            bottom: -30,
+            top: MediaQuery.of(context).size.height - 130,
             child: Container(
               width: 160,
               height: 160,

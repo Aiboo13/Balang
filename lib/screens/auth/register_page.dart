@@ -178,6 +178,7 @@ class _RegisterPageState extends State<RegisterPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
+        clipBehavior: Clip.none,
         children: [
           // Dekorasi UI bagian atas
           Positioned(
@@ -192,7 +193,8 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
           // Dekorasi UI bagian bawah
           Positioned(
-            left: -30, bottom: -30,
+            left: -30,
+            top: MediaQuery.of(context).size.height - 130,
             child: Container(
               width: 160, height: 160,
               decoration: BoxDecoration(

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Ditambahkan untuk TextInputFormatter
 import '../../main.dart';
 import 'register_page.dart';
@@ -88,6 +88,7 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
+        clipBehavior: Clip.none,
         children: [
           // Dekorasi Atas (Partial Circle)
           Positioned(
@@ -109,7 +110,7 @@ class _LoginPageState extends State<LoginPage> {
           // Dekorasi Bawah (Partial Circle)
           Positioned(
             left: -30,
-            bottom: -30,
+            top: MediaQuery.of(context).size.height - 130,
             child: Container(
               width: 160,
               height: 160,

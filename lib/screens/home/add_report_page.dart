@@ -330,7 +330,7 @@ class _AddReportPageState extends State<AddReportPage> {
                     GestureDetector(
                       onTap: _showImageSourceSheet,
                       child: Container(
-                        height: 200,
+                        height: _base64Image != null ? null : 200,
                         width: double.infinity,
                         decoration: BoxDecoration(
                           color: Colors.grey[200],
@@ -343,12 +343,10 @@ class _AddReportPageState extends State<AddReportPage> {
                                 child: _base64Image!.startsWith('http')
                                     ? Image.network(
                                         _base64Image!,
-                                        fit: BoxFit.cover,
                                         width: double.infinity,
                                       )
                                     : Image.memory(
                                         base64Decode(_base64Image!),
-                                        fit: BoxFit.cover,
                                         width: double.infinity,
                                       ),
                               )

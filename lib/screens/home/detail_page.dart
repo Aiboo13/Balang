@@ -563,6 +563,22 @@ class _DetailPageState extends State<DetailPage> {
           final showClaimerInfoForOwner =
               isOwner && (isPendingClaim || isClaimAccepted);
 
+          // Real-time synchronized fields from Firestore
+          final dbImageUrl = _asString(reportData, 'imageUrl', fallback: widget.imageUrl);
+          final dbTitle = _asString(reportData, 'title', fallback: widget.title);
+          final dbDescription = _asString(reportData, 'description', fallback: widget.description);
+          final dbLocation = _asString(reportData, 'location', fallback: widget.location);
+          final dbDate = _asString(reportData, 'date', fallback: widget.date);
+          final dbTime = _asString(reportData, 'time', fallback: widget.time);
+          final dbCategory = _asString(reportData, 'category', fallback: '');
+
+          final dbStatus = dbCategory.isNotEmpty
+              ? (dbCategory.toLowerCase().startsWith('temu') ? 'Ditemukan' : 'Hilang')
+              : widget.status;
+          final dbStatusColor = dbCategory.isNotEmpty
+              ? (dbStatus == 'Ditemukan' ? Colors.greenAccent : Colors.redAccent)
+              : widget.statusColor;
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -571,12 +587,10 @@ class _DetailPageState extends State<DetailPage> {
                 // Gambar Barang
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-                  child: widget.imageUrl.toString().startsWith('http')
+                  child: dbImageUrl.toString().startsWith('http')
                       ? Image.network(
-                          widget.imageUrl,
+                          dbImageUrl,
                           width: double.infinity,
-                          height: 250,
-                          fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
                             width: double.infinity,
                             height: 250,
@@ -591,12 +605,10 @@ class _DetailPageState extends State<DetailPage> {
                             ),
                           ),
                         )
-                      : (widget.imageUrl.isNotEmpty
+                      : (dbImageUrl.isNotEmpty
                             ? Image.memory(
-                                base64Decode(widget.imageUrl),
+                                base64Decode(dbImageUrl),
                                 width: double.infinity,
-                                height: 250,
-                                fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => Container(
                                   width: double.infinity,
                                   height: 250,
@@ -633,7 +645,7 @@ class _DetailPageState extends State<DetailPage> {
                   children: [
                     Expanded(
                       child: Text(
-                        widget.title,
+                        dbTitle,
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -647,13 +659,13 @@ class _DetailPageState extends State<DetailPage> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: widget.statusColor.withOpacity(0.2),
+                        color: dbStatusColor.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        widget.status,
+                        dbStatus,
                         style: TextStyle(
-                          color: widget.statusColor == Colors.greenAccent
+                          color: dbStatusColor == Colors.greenAccent
                               ? Colors.green[700]
                               : Colors.red[700],
                           fontWeight: FontWeight.bold,
@@ -675,14 +687,14 @@ class _DetailPageState extends State<DetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.description,
+                      dbDescription,
                       maxLines: _isDescriptionExpanded ? null : 3,
                       overflow: _isDescriptionExpanded
                           ? TextOverflow.visible
                           : TextOverflow.ellipsis,
                       style: const TextStyle(color: Colors.black87, height: 1.5),
                     ),
-                    if (widget.description.length > 100)
+                    if (dbDescription.length > 100)
                       GestureDetector(
                         onTap: () {
                           setState(() {
@@ -711,19 +723,19 @@ class _DetailPageState extends State<DetailPage> {
                 _buildInfoRow(
                   Icons.location_on_outlined,
                   'Lokasi',
-                  widget.location.isEmpty ? '-' : widget.location,
+                  dbLocation.isEmpty ? '-' : dbLocation,
                 ),
                 const SizedBox(height: 15),
                 _buildInfoRow(
                   Icons.calendar_today_outlined,
                   'Tanggal',
-                  widget.date.isEmpty ? '-' : widget.date,
+                  dbDate.isEmpty ? '-' : dbDate,
                 ),
                 const SizedBox(height: 15),
                 _buildInfoRow(
                   Icons.access_time,
                   'Waktu',
-                  widget.time.isEmpty ? '-' : widget.time,
+                  dbTime.isEmpty ? '-' : dbTime,
                 ),
 
                 // Info Pelapor - ditampilkan kepada user yang sedang mengklaim

@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -65,7 +65,12 @@ class NotificationPage extends StatelessWidget {
           }
 
           final docs = (snapshot.data?.docs ?? []).where((doc) {
-            final reportOwnerId = (doc.data()['userId'] ?? '')
+            final data = doc.data();
+            final reportStatus = data['reportStatus'] ?? 'Aktif';
+            if (reportStatus == 'Selesai') {
+              return false;
+            }
+            final reportOwnerId = (data['userId'] ?? '')
                 .toString()
                 .trim();
             return reportOwnerId.isNotEmpty && reportOwnerId != currentUserId;
