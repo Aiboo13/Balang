@@ -478,6 +478,7 @@ class _AddReportPageState extends State<AddReportPage> {
                       ),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Wajib diisi';
+                        if (v.trim().length < 10) return 'Minimal 10 karakter';
                         if (v.trim().length > 500)
                           return 'Maksimal 500 karakter';
                         return null;
