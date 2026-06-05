@@ -77,18 +77,18 @@ class _DetailPageState extends State<DetailPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
 
   String get _reporterNameDisplay {
-    if (widget.reporterName.trim().isNotEmpty) {
+    if (_hasMeaningfulText(widget.reporterName)) {
       return widget.reporterName.trim();
     }
-    if (_resolvedReporterName.trim().isNotEmpty) {
+    if (_hasMeaningfulText(_resolvedReporterName)) {
       return _resolvedReporterName.trim();
     }
     if (FirebaseAuth.instance.currentUser?.uid == widget.reportUserId) {
@@ -106,10 +106,10 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   String get _reporterWhatsAppDisplay {
-    if (widget.reporterWhatsApp.trim().isNotEmpty) {
+    if (_hasMeaningfulText(widget.reporterWhatsApp)) {
       return widget.reporterWhatsApp.trim();
     }
-    if (_resolvedReporterWhatsApp.trim().isNotEmpty) {
+    if (_hasMeaningfulText(_resolvedReporterWhatsApp)) {
       return _resolvedReporterWhatsApp.trim();
     }
     return '-';
@@ -127,6 +127,11 @@ class _DetailPageState extends State<DetailPage> {
       return value.trim();
     }
     return fallback;
+  }
+
+  bool _hasMeaningfulText(String value) {
+    final normalized = value.trim();
+    return normalized.isNotEmpty && normalized != '-';
   }
 
   Future<Map<String, String>> _resolveClaimerInfo() async {
@@ -292,8 +297,8 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   Future<void> _resolveReporterInfo() async {
-    if (widget.reporterName.trim().isNotEmpty &&
-        widget.reporterWhatsApp.trim().isNotEmpty) {
+    if (_hasMeaningfulText(widget.reporterName) &&
+        _hasMeaningfulText(widget.reporterWhatsApp)) {
       return;
     }
 
@@ -308,8 +313,18 @@ class _DetailPageState extends State<DetailPage> {
       }
 
       setState(() {
-        _resolvedReporterName = (data['name'] as String?)?.trim() ?? '';
-        _resolvedReporterWhatsApp = (data['whatsApp'] as String?)?.trim() ?? '';
+        final resolvedName = (data['name'] as String?)?.trim() ?? '';
+        final resolvedWhatsApp = (data['whatsApp'] as String?)?.trim() ?? '';
+
+        if (!_hasMeaningfulText(widget.reporterName) &&
+            _hasMeaningfulText(resolvedName)) {
+          _resolvedReporterName = resolvedName;
+        }
+
+        if (!_hasMeaningfulText(widget.reporterWhatsApp) &&
+            _hasMeaningfulText(resolvedWhatsApp)) {
+          _resolvedReporterWhatsApp = resolvedWhatsApp;
+        }
       });
     } catch (_) {
       // Fallback tetap pakai nilai dari widget jika query gagal.
@@ -564,19 +579,39 @@ class _DetailPageState extends State<DetailPage> {
               isOwner && (isPendingClaim || isClaimAccepted);
 
           // Real-time synchronized fields from Firestore
-          final dbImageUrl = _asString(reportData, 'imageUrl', fallback: widget.imageUrl);
-          final dbTitle = _asString(reportData, 'title', fallback: widget.title);
-          final dbDescription = _asString(reportData, 'description', fallback: widget.description);
-          final dbLocation = _asString(reportData, 'location', fallback: widget.location);
+          final dbImageUrl = _asString(
+            reportData,
+            'imageUrl',
+            fallback: widget.imageUrl,
+          );
+          final dbTitle = _asString(
+            reportData,
+            'title',
+            fallback: widget.title,
+          );
+          final dbDescription = _asString(
+            reportData,
+            'description',
+            fallback: widget.description,
+          );
+          final dbLocation = _asString(
+            reportData,
+            'location',
+            fallback: widget.location,
+          );
           final dbDate = _asString(reportData, 'date', fallback: widget.date);
           final dbTime = _asString(reportData, 'time', fallback: widget.time);
           final dbCategory = _asString(reportData, 'category', fallback: '');
 
           final dbStatus = dbCategory.isNotEmpty
-              ? (dbCategory.toLowerCase().startsWith('temu') ? 'Ditemukan' : 'Hilang')
+              ? (dbCategory.toLowerCase().startsWith('temu')
+                    ? 'Ditemukan'
+                    : 'Hilang')
               : widget.status;
           final dbStatusColor = dbCategory.isNotEmpty
-              ? (dbStatus == 'Ditemukan' ? Colors.greenAccent : Colors.redAccent)
+              ? (dbStatus == 'Ditemukan'
+                    ? Colors.greenAccent
+                    : Colors.redAccent)
               : widget.statusColor;
 
           return SingleChildScrollView(
@@ -692,7 +727,10 @@ class _DetailPageState extends State<DetailPage> {
                       overflow: _isDescriptionExpanded
                           ? TextOverflow.visible
                           : TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.black87, height: 1.5),
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        height: 1.5,
+                      ),
                     ),
                     if (dbDescription.length > 100)
                       GestureDetector(
@@ -987,7 +1025,10 @@ class _DetailPageState extends State<DetailPage> {
             children: [
               Text(
                 label,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
               Text(
                 value,
