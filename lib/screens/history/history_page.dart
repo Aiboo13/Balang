@@ -280,7 +280,7 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
           const SizedBox(height: 25),
 
-          // Statistik (Udah dibungkus Expanded biar ga overflow bray!)
+          // Statistik 
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

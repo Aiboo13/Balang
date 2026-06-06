@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter/gestures.dart'; // WAJIB ADA INI BUAT KLIK DI RICHTEXT
+import 'package:flutter/gestures.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -95,7 +95,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
       print('OTP berhasil dikirim via EmailJS ke $email: $otp');
       
-      // Biar kalau user klik "Kirim ulang", dia gak nambah step tapi tetep di halaman OTP
+      // user klik "Kirim ulang", tidak menambah step tapi tetep di halaman OTP
       if (_currentStep == 0) {
         _nextStep();
       } else {
@@ -414,7 +414,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             ? const CircularProgressIndicator()
             : _buildButton(text: 'Verifikasi', onPressed: _verifyOtp),
         const SizedBox(height: 25),
-        // BAGIAN INI UDAH GUA FIX BIAR BISA DIKLIK COK
+        // fix
         RichText(
           text: TextSpan(
             style: const TextStyle(color: Colors.black87, fontSize: 13),

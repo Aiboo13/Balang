@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// Widget shimmer/skeleton dasar — berkedip dari abu muda ke abu lebih terang
 class _ShimmerBox extends StatefulWidget {
-  final double? width; // Diubah jadi nullable biar bisa ngikutin Expanded
+  final double? width; // nullable agar bisa expand
   final double height;
   final BorderRadius borderRadius;
 
@@ -44,7 +44,7 @@ class _ShimmerBoxState extends State<_ShimmerBox>
     return AnimatedBuilder(
       animation: _animation,
       builder: (_, __) => Container(
-        width: widget.width ?? double.infinity, // Kalau width null, dia bakal ngisi space yang tersedia
+        width: widget.width ?? double.infinity, // jika null akan mengisi space kosong
         height: widget.height,
         decoration: BoxDecoration(
           borderRadius: widget.borderRadius,
