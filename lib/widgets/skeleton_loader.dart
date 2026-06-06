@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 /// Widget shimmer/skeleton dasar — berkedip dari abu muda ke abu lebih terang
 class _ShimmerBox extends StatefulWidget {
-  final double width;
+  final double? width; // Diubah jadi nullable biar bisa ngikutin Expanded
   final double height;
   final BorderRadius borderRadius;
 
   const _ShimmerBox({
-    required this.width,
+    this.width,
     required this.height,
     this.borderRadius = const BorderRadius.all(Radius.circular(8)),
   });
@@ -44,7 +44,7 @@ class _ShimmerBoxState extends State<_ShimmerBox>
     return AnimatedBuilder(
       animation: _animation,
       builder: (_, __) => Container(
-        width: widget.width,
+        width: widget.width ?? double.infinity, // Kalau width null, dia bakal ngisi space yang tersedia
         height: widget.height,
         decoration: BoxDecoration(
           borderRadius: widget.borderRadius,
@@ -82,7 +82,10 @@ class HomeCardSkeleton extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _ShimmerBox(width: 140, height: 14),
+              const Expanded(
+                child: _ShimmerBox(height: 14),
+              ),
+              const SizedBox(width: 10),
               _ShimmerBox(
                 width: 70,
                 height: 22,
@@ -100,16 +103,16 @@ class HomeCardSkeleton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               const SizedBox(width: 14),
-              Expanded(
+              const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _ShimmerBox(width: double.infinity, height: 12),
-                    const SizedBox(height: 6),
+                    _ShimmerBox(height: 12),
+                    SizedBox(height: 6),
                     _ShimmerBox(width: 120, height: 12),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     _ShimmerBox(width: 60, height: 11),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     _ShimmerBox(width: 90, height: 11),
                   ],
                 ),
@@ -157,10 +160,14 @@ class HistoryCardSkeleton extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Di-Expanded bray biar ga overflow pas loading layar sempit
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _ShimmerBox(width: 120, height: 14),
+                        const Expanded(
+                          child: _ShimmerBox(height: 14),
+                        ),
+                        const SizedBox(width: 10),
                         _ShimmerBox(
                           width: 60,
                           height: 20,
@@ -169,13 +176,13 @@ class HistoryCardSkeleton extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    _ShimmerBox(width: double.infinity, height: 11),
+                    const _ShimmerBox(height: 11),
                     const SizedBox(height: 4),
-                    _ShimmerBox(width: 160, height: 11),
+                    const _ShimmerBox(width: 160, height: 11),
                     const SizedBox(height: 8),
-                    _ShimmerBox(width: 100, height: 11),
+                    const _ShimmerBox(width: 100, height: 11),
                     const SizedBox(height: 4),
-                    _ShimmerBox(width: 80, height: 11),
+                    const _ShimmerBox(width: 80, height: 11),
                   ],
                 ),
               ),
@@ -187,7 +194,7 @@ class HistoryCardSkeleton extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _ShimmerBox(width: 80, height: 11),
+              const _ShimmerBox(width: 80, height: 11),
               _ShimmerBox(
                 width: 60,
                 height: 22,

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter/gestures.dart'; // WAJIB ADA INI BUAT KLIK DI RICHTEXT
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -68,7 +69,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           });
 
       // --- BAGIAN EMAILJS ---
-      // Silakan ganti dengan ID dari dashboard EmailJS Anda
       const serviceId = 'service_0vk20bb';
       const templateId = 'template_lqw064p';
       const publicKey = 'S7G31OmmctAtPmUOK';
@@ -94,7 +94,15 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       }
 
       print('OTP berhasil dikirim via EmailJS ke $email: $otp');
-      _nextStep();
+      
+      // Biar kalau user klik "Kirim ulang", dia gak nambah step tapi tetep di halaman OTP
+      if (_currentStep == 0) {
+        _nextStep();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Kode OTP baru telah dikirim ulang!')),
+        );
+      }
     } catch (e) {
       print('Error detail: $e');
       ScaffoldMessenger.of(
@@ -170,8 +178,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
     setState(() => _isLoading = true);
     try {
-      // 1. Ambil password lama dari Firestore (karena disimpan di database users)
-      // Kita query menggunakan filter 'email' agar kompatibel baik jika document ID berupa UID (akun lama) maupun email (akun baru).
       final querySnapshot = await FirebaseFirestore.instance
           .collection('users')
           .where('email', isEqualTo: email)
@@ -188,16 +194,13 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         throw 'Data password lama tidak ditemukan di database.';
       }
 
-      // 2. Login secara senyap/sementara menggunakan password lama agar mendapatkan sesi aktif
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: oldPassword,
       );
 
-      // 3. Update password di Firebase Authentication menggunakan sesi aktif tersebut
       await userCredential.user?.updatePassword(newPassword);
 
-      // 4. Update password baru di Firestore agar tetap sinkron menggunakan ID dokumen yang tepat
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userDoc.id)
@@ -206,10 +209,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             'updatedAt': FieldValue.serverTimestamp(),
           });
 
-      // 5. Logout kembali agar user bisa masuk secara manual dengan password baru
       await FirebaseAuth.instance.signOut();
 
-      // 6. Hapus data OTP setelah berhasil
       await FirebaseFirestore.instance
           .collection('password_resets')
           .doc(email)
@@ -256,7 +257,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       body: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Dekorasi Atas
           Positioned(
             right: -60,
             top: 70,
@@ -273,7 +273,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             ),
           ),
 
-          // Dekorasi Bawah
           Positioned(
             left: -30,
             top: MediaQuery.of(context).size.height - 130,
@@ -368,12 +367,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         const SizedBox(height: 25),
         GestureDetector(
           onTap: _previousStep,
-          child: Row(
+          child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.arrow_back, size: 18),
-              const SizedBox(width: 8),
-              const Text(
+              Icon(Icons.arrow_back, size: 18),
+              SizedBox(width: 8),
+              Text(
                 'Kembali',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
@@ -415,6 +414,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             ? const CircularProgressIndicator()
             : _buildButton(text: 'Verifikasi', onPressed: _verifyOtp),
         const SizedBox(height: 25),
+        // BAGIAN INI UDAH GUA FIX BIAR BISA DIKLIK COK
         RichText(
           text: TextSpan(
             style: const TextStyle(color: Colors.black87, fontSize: 13),
@@ -423,9 +423,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               TextSpan(
                 text: 'Kirim ulang',
                 style: TextStyle(
-                  color: primaryColor,
+                  color: _isLoading ? Colors.grey : primaryColor,
                   fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.underline,
                 ),
+                recognizer: TapGestureRecognizer()
+                  ..onTap = _isLoading ? null : () => _sendOtp(),
               ),
             ],
           ),
@@ -460,7 +463,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           hintText: 'Kata Sandi (Minimal 6 karakter)',
           controller: _passwordController,
           isVisible: _isPasswordVisible,
-          maxLength: 20, // Tambahkan ini (Membatasi input maksimal 20 karakter)
+          maxLength: 20,
           onToggle: () =>
               setState(() => _isPasswordVisible = !_isPasswordVisible),
         ),
@@ -469,7 +472,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           hintText: 'Konfirmasi Kata Sandi',
           controller: _confirmController,
           isVisible: _isConfirmPasswordVisible,
-          maxLength: 20, // Tambahkan ini agar sinkron dengan kata sandi utama
+          maxLength: 20,
           onToggle: () => setState(
             () => _isConfirmPasswordVisible = !_isConfirmPasswordVisible,
           ),
@@ -589,12 +592,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     required TextEditingController controller,
     required bool isVisible,
     required VoidCallback onToggle,
-    int? maxLength, // 1. Tambahkan parameter opsional ini
+    int? maxLength,
   }) {
     return TextField(
       controller: controller,
-      obscureText: !isVisible, // Membuka/tutup sandi lewat negasi isVisible
-      maxLength: maxLength, // 2. Pasang di sini untuk mengunci input keyboard
+      obscureText: !isVisible,
+      maxLength: maxLength,
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         hintText: hintText,
@@ -605,8 +608,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         ),
         filled: true,
         fillColor: Colors.white,
-        counterText:
-            "", // 3. Sembunyikan teks counter angka di pojok kanan bawah
+        counterText: "",
         suffixIcon: IconButton(
           icon: Icon(
             isVisible ? Icons.visibility : Icons.visibility_off,

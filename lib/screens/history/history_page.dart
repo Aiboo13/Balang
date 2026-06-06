@@ -280,14 +280,17 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
           const SizedBox(height: 25),
 
-          // Statistik
+          // Statistik (Udah dibungkus Expanded biar ga overflow bray!)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildStatItem('$total', 'Total'),
-              _buildStatItem('$aktif', 'Aktif'),
-              _buildStatItem('$pending', 'Pending'),
-              _buildStatItem('$selesai', 'Selesai'),
+              Expanded(child: _buildStatItem('$total', 'Total')),
+              const SizedBox(width: 8),
+              Expanded(child: _buildStatItem('$aktif', 'Aktif')),
+              const SizedBox(width: 8),
+              Expanded(child: _buildStatItem('$pending', 'Pending')),
+              const SizedBox(width: 8),
+              Expanded(child: _buildStatItem('$selesai', 'Selesai')),
             ],
           ),
           const SizedBox(height: 20),
@@ -315,25 +318,27 @@ class _HistoryPageState extends State<HistoryPage> {
 
   Widget _buildStatItem(String count, String label) {
     return Container(
-      width: 75,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             count,
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 18,
+              fontSize: 16,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
           Text(
             label,
             style: const TextStyle(color: Colors.white, fontSize: 11),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -650,10 +655,10 @@ class _HistoryPageState extends State<HistoryPage> {
                       onPressed: isProcessingDecision
                           ? null
                           : () => _showDecisionDialog(
-                              context,
-                              docId: docId,
-                              accept: true,
-                            ),
+                                context,
+                                docId: docId,
+                                accept: true,
+                              ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF104A7C),
                         shape: RoundedRectangleBorder(
@@ -675,10 +680,10 @@ class _HistoryPageState extends State<HistoryPage> {
                       onPressed: isProcessingDecision
                           ? null
                           : () => _showDecisionDialog(
-                              context,
-                              docId: docId,
-                              accept: false,
-                            ),
+                                context,
+                                docId: docId,
+                                accept: false,
+                              ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.redAccent,
                         shape: RoundedRectangleBorder(
