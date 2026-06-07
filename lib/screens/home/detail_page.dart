@@ -134,6 +134,24 @@ class _DetailPageState extends State<DetailPage> {
     return normalized.isNotEmpty && normalized != '-';
   }
 
+  Future<Map<String, dynamic>?> _findUserDataByUid(String uid) async {
+    if (uid.trim().isEmpty) {
+      return null;
+    }
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('uid', isEqualTo: uid)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) {
+      return null;
+    }
+
+    return snapshot.docs.first.data();
+  }
+
   Future<Map<String, String>> _resolveClaimerInfo() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -148,11 +166,7 @@ class _DetailPageState extends State<DetailPage> {
 
     String whatsApp = '-';
     try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      final data = userDoc.data();
+      final data = await _findUserDataByUid(user.uid);
       if (data != null) {
         final dbName = (data['name'] as String?)?.trim() ?? '';
         final dbWa = (data['whatsApp'] as String?)?.trim() ?? '';
@@ -303,11 +317,7 @@ class _DetailPageState extends State<DetailPage> {
     }
 
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.reportUserId)
-          .get();
-      final data = snapshot.data();
+      final data = await _findUserDataByUid(widget.reportUserId);
       if (data == null || !mounted) {
         return;
       }
